@@ -78,6 +78,19 @@ export default function LoginPage() {
         <p className="text-muted text-xs text-center mt-5">
           No account yet? Ask your admin to add you from the Admin panel.
         </p>
+
+        <div className="mt-10 pt-6 border-t border-border/40 flex flex-col items-center gap-2">
+          <img src="/logo-lockup.png" alt="Shah Zaib" className="h-9 w-auto opacity-80" />
+          <p className="text-muted text-xs">
+            Developed by Shah Zaib Ali ·{" "}
+            <a
+              href="mailto:mr.shahzaibali@yahoo.com"
+              className="text-muted hover:text-accent underline underline-offset-2 transition-colors"
+            >
+              mr.shahzaibali@yahoo.com
+            </a>
+          </p>
+        </div>
       </div>
     </main>
   );

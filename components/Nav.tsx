@@ -25,12 +25,15 @@ export default function Nav({ isAdmin }: { isAdmin: boolean }) {
 
   return (
     <>
-      {/* Slim top bar — just identity + sign out, no nav links here anymore */}
+      {/* Slim top bar — identity + sign out, no nav links here anymore */}
       <header className="sticky top-0 z-30 border-b border-border/60 bg-base/85 backdrop-blur-md">
         <div className="max-w-3xl mx-auto px-4 h-12 flex items-center justify-between">
-          <span className="font-display font-semibold tracking-wide text-accent text-xs uppercase">
-            Carrier Dialer
-          </span>
+          <div className="flex items-center gap-2">
+            <img src="/logo-mark.png" alt="" className="h-5 w-auto opacity-90" />
+            <span className="font-display font-semibold tracking-wide text-accent text-xs uppercase">
+              Carrier Dialer
+            </span>
+          </div>
           <button
             onClick={signOut}
             aria-label="Sign out"
