@@ -1,8 +1,9 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Phone, ListChecks, Clock, Settings, LogOut } from "lucide-react";
+import { Phone, ListChecks, Clock, Settings, LogOut, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 export default function Nav({ isAdmin }: { isAdmin: boolean }) {
@@ -10,9 +11,17 @@ export default function Nav({ isAdmin }: { isAdmin: boolean }) {
   const router = useRouter();
   const supabase = createClient();
 
+  useEffect(() => {
+    const ping = () => fetch("/api/heartbeat", { method: "POST" }).catch(() => {});
+    ping();
+    const id = setInterval(ping, 45000);
+    return () => clearInterval(id);
+  }, []);
+
   const tabs = [
     { href: "/dial", label: "Dial", icon: Phone },
     { href: "/leads", label: "Leads", icon: ListChecks },
+    { href: "/team", label: "Team", icon: Users },
     { href: "/log", label: "Log", icon: Clock },
     ...(isAdmin ? [{ href: "/admin", label: "Admin", icon: Settings }] : []),
   ];

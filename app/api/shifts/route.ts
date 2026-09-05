@@ -48,22 +48,19 @@ export async function POST() {
     return NextResponse.json({ shift: existing, message: "Already checked in." });
   }
 
-  const { data, error } = await supabase
-    .from("shifts")
-    .insert({ user_id: user.id })
-    .select()
-    .single();
+  const { data, error } = await supabase.from("shifts").insert({ user_id: user.id }).select().single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ shift: data });
 }
 
-export async function PATCH() {
-  // Check out — closes the currently open shift.
+export async function PATCH(request: NextRequest) {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+
+  const body = await request.json().catch(() => ({}));
 
   const { data: open } = await supabase
     .from("shifts")
@@ -76,12 +73,38 @@ export async function PATCH() {
     return NextResponse.json({ error: "You're not checked in." }, { status: 400 });
   }
 
-  const { data, error } = await supabase
-    .from("shifts")
-    .update({ check_out: new Date().toISOString() })
-    .eq("id", open.id)
-    .select()
-    .single();
+  // action: "checkout" closes the shift. Anything else (or no action) just
+  // updates the resumable scan state — called after every "Next" click.
+  const update: Record<string, unknown> =
+    body.action === "checkout"
+      ? { check_out: new Date().toISOString() }
+      : {
+          mode: body.mode ?? undefined,
+          state: body.state ?? undefined,
+          min_power_units: body.minPowerUnits ?? undefined,
+          max_power_units: body.maxPowerUnits ?? undefined,
+          docket_only: body.docketOnly ?? undefined,
+          start_number: body.startNumber ?? undefined,
+          end_number: body.endNumber ?? undefined,
+        };
+
+  const { data, error } = await supabase.from("shifts").update(update).eq("id", open.id).select().single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ shift: data });
+}
+
+export async function DELETE(request: NextRequest) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+
+  const id = request.nextUrl.searchParams.get("id");
+  if (!id) return NextResponse.json({ error: "id is required." }, { status: 400 });
+
+  // RLS allows a user to delete their own shifts, or an admin to delete any.
+  const { error } = await supabase.from("shifts").delete().eq("id", id);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ ok: true });
 }

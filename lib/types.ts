@@ -4,6 +4,28 @@ export interface Lead {
   priority: boolean;
   notes: string | null;
   last_called_at: string | null;
+  reminder_date?: string | null;
+  reminder_note?: string | null;
+  reminder_done?: boolean;
+}
+
+export interface MotusOfficial {
+  name: string;
+  title: string;
+  phone: string;
+  email: string;
+}
+
+export interface MotusDetails {
+  dunsBradstreet: string | null;
+  formOfBusiness: string | null;
+  stateIncorporated: string | null;
+  businessEmail: string | null;
+  officials: MotusOfficial[];
+  operationTypes: string[];
+  cargoClasses: string[];
+  vehicles: { type: string; owned: string; leased: string }[];
+  fetchedAt: string;
 }
 
 export interface Carrier {
@@ -30,6 +52,7 @@ export interface Carrier {
   add_date: string | null;
   mcs150_date: string | null;
   safety_rating: string | null;
+  motus_details?: MotusDetails | null;
   leads?: Lead | Lead[] | null;
 }
 
@@ -49,6 +72,25 @@ export interface Shift {
   check_out: string | null;
   carriers_viewed: number;
   carriers_logged: number;
+  mode?: string | null;
+  state?: string | null;
+  min_power_units?: number | null;
+  max_power_units?: number | null;
+  docket_only?: boolean | null;
+  start_number?: number | null;
+  end_number?: number | null;
+  user_name?: string;
+}
+
+export interface TeamPost {
+  id: string;
+  author_id: string;
+  body: string;
+  dot_number: number | null;
+  is_broadcast: boolean;
+  created_at: string;
+  profiles?: { full_name: string | null } | null;
+  carriers?: { legal_name: string | null } | null;
 }
 
 export function getLead(carrier: Carrier | null | undefined): Lead | null {
@@ -96,4 +138,13 @@ export function formatDuration(startIso: string, endIso: string | null): string 
 
 export function formatClock(iso: string): string {
   return new Date(iso).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+}
+
+export function todayIso(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+export function isReminderDue(dateIso: string | null | undefined): boolean {
+  if (!dateIso) return false;
+  return dateIso <= todayIso();
 }

@@ -29,7 +29,7 @@ export async function GET() {
   const admin = createAdminClient();
   const { data: profiles, error: profilesError } = await admin
     .from("profiles")
-    .select("id, full_name, role, created_at");
+    .select("id, full_name, role, created_at, last_seen_at");
   if (profilesError) {
     return NextResponse.json({ error: profilesError.message }, { status: 500 });
   }
@@ -74,6 +74,31 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ user: data.user });
+}
+
+export async function PATCH(request: NextRequest) {
+  const check = await requireAdmin();
+  if (!check.ok) return NextResponse.json({ error: check.error }, { status: check.status });
+
+  const body = await request.json().catch(() => null);
+  if (!body?.id || !["admin", "rep"].includes(body?.role)) {
+    return NextResponse.json({ error: "id and a valid role are required." }, { status: 400 });
+  }
+
+  if (check.ok && body.id === check.user.id && body.role !== "admin") {
+    return NextResponse.json({ error: "You can't demote yourself — have another admin do it." }, { status: 400 });
+  }
+
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("profiles")
+    .update({ role: body.role })
+    .eq("id", body.id)
+    .select()
+    .single();
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ profile: data });
 }
 
 export async function DELETE(request: NextRequest) {

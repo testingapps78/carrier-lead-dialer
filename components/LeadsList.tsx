@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Star, Trash2, ChevronDown, Search, X } from "lucide-react";
-import { formatPhone, statusClass } from "@/lib/types";
+import { useEffect, useMemo, useState } from "react";
+import { Star, Trash2, ChevronDown, Search, X, Bell, Check } from "lucide-react";
+import { formatPhone, statusClass, isReminderDue, todayIso } from "@/lib/types";
 import { useCallStatuses } from "@/lib/useCallStatuses";
+import CopyButton from "@/components/CopyButton";
 
 interface LeadRow {
   dot_number: number;
@@ -12,6 +13,9 @@ interface LeadRow {
   notes: string | null;
   last_called_at: string | null;
   updated_at: string;
+  reminder_date: string | null;
+  reminder_note: string | null;
+  reminder_done: boolean;
   carriers: {
     legal_name: string | null;
     dba_name: string | null;
@@ -24,14 +28,17 @@ interface LeadRow {
   } | null;
 }
 
+type SortKey = "recent" | "oldest" | "priority" | "name" | "reminder";
+
 export default function LeadsList() {
   const { statuses } = useCallStatuses();
   const [leads, setLeads] = useState<LeadRow[]>([]);
   const [statusFilter, setStatusFilter] = useState("");
+  const [priorityOnly, setPriorityOnly] = useState(false);
+  const [sort, setSort] = useState<SortKey>("recent");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<number | null>(null);
-  const [notesDraft, setNotesDraft] = useState<Record<number, string>>({});
 
   function load() {
     setLoading(true);
@@ -68,9 +75,64 @@ export default function LeadsList() {
   const statusLabel = (value: string) => statuses.find((s) => s.value === value)?.label ?? value;
   const statusColorClass = (value: string) => statusClass(statuses.find((s) => s.value === value)?.color);
 
+  const dueReminders = useMemo(
+    () => leads.filter((l) => !l.reminder_done && isReminderDue(l.reminder_date)),
+    [leads]
+  );
+
+  const visibleLeads = useMemo(() => {
+    let list = priorityOnly ? leads.filter((l) => l.priority) : leads;
+    const sorted = [...list];
+    switch (sort) {
+      case "oldest":
+        sorted.sort((a, b) => a.updated_at.localeCompare(b.updated_at));
+        break;
+      case "priority":
+        sorted.sort((a, b) => Number(b.priority) - Number(a.priority));
+        break;
+      case "name":
+        sorted.sort((a, b) => (a.carriers?.legal_name || "").localeCompare(b.carriers?.legal_name || ""));
+        break;
+      case "reminder":
+        sorted.sort((a, b) => (a.reminder_date || "9999").localeCompare(b.reminder_date || "9999"));
+        break;
+      default:
+        sorted.sort((a, b) => b.updated_at.localeCompare(a.updated_at));
+    }
+    return sorted;
+  }, [leads, priorityOnly, sort]);
+
   return (
     <div className="max-w-4xl mx-auto px-4 pt-5 pb-28">
       <h1 className="font-display text-2xl font-semibold tracking-tight mb-4">Worked leads</h1>
+
+      {dueReminders.length > 0 && (
+        <div className="bg-accent/10 border border-accent/30 rounded-xl p-4 mb-4">
+          <div className="flex items-center gap-2 text-accent text-sm font-medium mb-2">
+            <Bell size={14} /> {dueReminders.length} callback{dueReminders.length === 1 ? "" : "s"} due
+          </div>
+          <div className="space-y-2">
+            {dueReminders.map((l) => (
+              <div key={l.dot_number} className="flex items-start gap-2 text-sm">
+                <button
+                  onClick={() => patchLead(l.dot_number, { reminder_done: true })}
+                  className="mt-0.5 w-4 h-4 rounded border border-accent shrink-0 flex items-center justify-center hover:bg-accent/20"
+                  aria-label="Mark reminder done"
+                >
+                  <Check size={11} className="text-accent" />
+                </button>
+                <div>
+                  <span className="font-medium">{l.carriers?.legal_name || `DOT ${l.dot_number}`}</span>
+                  {l.reminder_note && <span className="text-muted"> — {l.reminder_note}</span>}
+                  {l.reminder_date && l.reminder_date < todayIso() && (
+                    <span className="text-bad text-xs ml-1">(overdue)</span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-2 mb-4">
         <div className="relative flex-1 min-w-[160px]">
@@ -97,18 +159,37 @@ export default function LeadsList() {
             <option key={s.value} value={s.value}>{s.label}</option>
           ))}
         </select>
+        <select
+          value={sort}
+          onChange={(e) => setSort(e.target.value as SortKey)}
+          className="bg-surface2 border border-border rounded-lg px-3 py-2.5 text-sm text-ink focus:border-accent outline-none"
+        >
+          <option value="recent">Recently updated</option>
+          <option value="oldest">Oldest first</option>
+          <option value="priority">Important first</option>
+          <option value="name">Company name A–Z</option>
+          <option value="reminder">Reminder date</option>
+        </select>
+        <button
+          onClick={() => setPriorityOnly((p) => !p)}
+          className={`flex items-center gap-1.5 text-sm px-3 py-2.5 rounded-lg border transition-colors ${
+            priorityOnly ? "bg-accent/20 text-accent border-accent" : "text-muted border-border"
+          }`}
+        >
+          <Star size={13} fill={priorityOnly ? "currentColor" : "none"} /> Important
+        </button>
       </div>
 
       {loading && <div className="text-muted text-center py-12">Loading…</div>}
 
-      {!loading && leads.length === 0 && (
+      {!loading && visibleLeads.length === 0 && (
         <div className="text-center text-muted py-16 border border-dashed border-border rounded-xl">
-          No leads yet — start a scan on the Dial tab and any carrier you tag will show up here.
+          No leads match these filters yet.
         </div>
       )}
 
       <div className="space-y-2">
-        {leads.map((lead) => {
+        {visibleLeads.map((lead) => {
           const name = lead.carriers?.legal_name || `DOT ${lead.dot_number}`;
           const isOpen = expanded === lead.dot_number;
           return (
@@ -142,7 +223,20 @@ export default function LeadsList() {
 
               {isOpen && (
                 <div className="px-4 pb-4 pt-1 border-t border-border/60 animate-fade-in">
-                  <div className="flex flex-wrap gap-1.5 mb-3 mt-3">
+                  <div className="flex items-center gap-2 mb-3 mt-3 text-xs text-muted">
+                    {lead.carriers?.docket_number && (
+                      <span className="flex items-center gap-1 mile-marker">
+                        MC {lead.carriers.docket_number}
+                        <CopyButton value={String(lead.carriers.docket_number)} label="" />
+                      </span>
+                    )}
+                    <span className="flex items-center gap-1 mile-marker">
+                      DOT {lead.dot_number}
+                      <CopyButton value={String(lead.dot_number)} label="" />
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap gap-1.5 mb-3">
                     {statuses.map((s) => (
                       <button
                         key={s.value}
@@ -155,14 +249,45 @@ export default function LeadsList() {
                       </button>
                     ))}
                   </div>
+
                   <textarea
                     defaultValue={lead.notes ?? ""}
-                    onChange={(e) => setNotesDraft((d) => ({ ...d, [lead.dot_number]: e.target.value }))}
                     onBlur={(e) => patchLead(lead.dot_number, { notes: e.target.value })}
                     placeholder="Notes…"
                     rows={2}
                     className="w-full bg-surface2 border border-border rounded-lg px-3 py-2 text-sm text-ink focus:border-accent outline-none resize-none mb-3"
                   />
+
+                  <div className="bg-surface2 rounded-lg p-3 mb-3">
+                    <div className="text-[11px] uppercase tracking-wide text-muted mb-2 flex items-center gap-1">
+                      <Bell size={11} /> Callback reminder
+                    </div>
+                    <div className="flex flex-wrap gap-2 items-center">
+                      <input
+                        type="date"
+                        defaultValue={lead.reminder_date ?? ""}
+                        onChange={(e) => patchLead(lead.dot_number, { reminder_date: e.target.value || null, reminder_done: false })}
+                        className="bg-surface border border-border rounded px-2 py-1.5 text-sm text-ink focus:border-accent outline-none"
+                      />
+                      <input
+                        defaultValue={lead.reminder_note ?? ""}
+                        onBlur={(e) => patchLead(lead.dot_number, { reminder_note: e.target.value })}
+                        placeholder="Message — e.g. call after fleet renewal"
+                        className="flex-1 min-w-[140px] bg-surface border border-border rounded px-2 py-1.5 text-sm text-ink focus:border-accent outline-none"
+                      />
+                      {lead.reminder_date && (
+                        <label className="flex items-center gap-1.5 text-xs text-muted">
+                          <input
+                            type="checkbox"
+                            checked={lead.reminder_done}
+                            onChange={(e) => patchLead(lead.dot_number, { reminder_done: e.target.checked })}
+                          />
+                          Done
+                        </label>
+                      )}
+                    </div>
+                  </div>
+
                   <div className="flex items-center justify-between">
                     <button
                       onClick={() => patchLead(lead.dot_number, { priority: !lead.priority })}

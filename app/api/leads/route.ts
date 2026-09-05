@@ -36,6 +36,9 @@ export async function POST(request: NextRequest) {
   }
   if (body.priority !== undefined) update.priority = !!body.priority;
   if (body.notes !== undefined) update.notes = String(body.notes).slice(0, 5000);
+  if (body.reminder_date !== undefined) update.reminder_date = body.reminder_date;
+  if (body.reminder_note !== undefined) update.reminder_note = String(body.reminder_note ?? "").slice(0, 1000);
+  if (body.reminder_done !== undefined) update.reminder_done = !!body.reminder_done;
 
   const { data, error } = await supabase
     .from("leads")

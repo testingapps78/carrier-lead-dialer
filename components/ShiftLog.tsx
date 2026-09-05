@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Play, Square, Phone, Tag } from "lucide-react";
+import { Play, Square, Phone, Tag, Trash2 } from "lucide-react";
 import { Shift, formatDuration, formatClock } from "@/lib/types";
 
 export default function ShiftLog() {
@@ -26,11 +26,21 @@ export default function ShiftLog() {
   async function toggle() {
     setBusy(true);
     try {
-      await fetch("/api/shifts", { method: open ? "PATCH" : "POST" });
+      await fetch("/api/shifts", {
+        method: open ? "PATCH" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: open ? JSON.stringify({ action: "checkout" }) : undefined,
+      });
       load();
     } finally {
       setBusy(false);
     }
+  }
+
+  async function deleteShift(id: string) {
+    if (!confirm("Delete this shift entry? This can't be undone.")) return;
+    await fetch(`/api/shifts?id=${id}`, { method: "DELETE" });
+    setHistory((h) => h.filter((s) => s.id !== id));
   }
 
   const todayTotal = history
@@ -93,6 +103,7 @@ export default function ShiftLog() {
               <div className="text-xs text-muted mt-0.5">
                 {formatClock(s.check_in)} – {s.check_out ? formatClock(s.check_out) : "—"} ·{" "}
                 {formatDuration(s.check_in, s.check_out)}
+                {s.start_number ? ` · ${(s.mode || "").toUpperCase()} ${s.start_number}–${s.end_number}` : ""}
               </div>
             </div>
             <div className="flex items-center gap-1 text-xs text-muted">
@@ -101,6 +112,9 @@ export default function ShiftLog() {
             <div className="flex items-center gap-1 text-xs text-muted">
               <Tag size={12} /> {s.carriers_logged}
             </div>
+            <button onClick={() => deleteShift(s.id)} className="text-muted hover:text-bad transition-colors">
+              <Trash2 size={14} />
+            </button>
           </div>
         ))}
       </div>
