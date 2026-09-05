@@ -1,7 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Phone, MapPin, Truck, Star, Play, Square, Loader2, ChevronLeft, ChevronDown, Mail, Building2 } from "lucide-react";
+import {
+  Phone, MapPin, Truck, Star, Play, Square, Loader2, ChevronLeft, ChevronDown,
+  Mail, Building2, ShieldCheck, Bell,
+} from "lucide-react";
 import { Carrier, Shift, MotusDetails, formatPhone, getLead, statusClass, formatDuration } from "@/lib/types";
 import { useCallStatuses } from "@/lib/useCallStatuses";
 import CopyButton from "@/components/CopyButton";
@@ -32,7 +35,7 @@ function useOpenShift() {
   return { shift, setShift, loading, reload: load };
 }
 
-function ShiftStrip({ shift, setShift, onCheckIn }: { shift: Shift | null; setShift: (s: Shift | null) => void; onCheckIn: () => void }) {
+function ShiftStrip({ shift, setShift }: { shift: Shift | null; setShift: (s: Shift | null) => void }) {
   const [busy, setBusy] = useState(false);
   const [, forceTick] = useState(0);
 
@@ -54,15 +57,14 @@ function ShiftStrip({ shift, setShift, onCheckIn }: { shift: Shift | null; setSh
       } else {
         const res = await fetch("/api/shifts", { method: "POST" });
         const data = await res.json();
-        if (res.ok) {
-          setShift(data.shift);
-          onCheckIn();
-        }
+        if (res.ok) setShift(data.shift);
       }
     } finally {
       setBusy(false);
     }
   }
+
+  const covered = shift?.start_number && shift?.end_number ? Math.abs(shift.end_number - shift.start_number) + 1 : null;
 
   return (
     <div className="flex items-center justify-between bg-surface border border-border rounded-xl px-4 py-3 mb-4">
@@ -71,12 +73,18 @@ function ShiftStrip({ shift, setShift, onCheckIn }: { shift: Shift | null; setSh
           <>
             <div className="text-sm text-ink font-medium">Checked in · {formatDuration(shift.check_in, null)}</div>
             <div className="text-xs text-muted mt-0.5">
-              {shift.carriers_viewed} viewed
-              {shift.start_number ? ` · from ${shift.start_number} to ${shift.end_number ?? shift.start_number}` : ""}
+              {covered !== null && (
+                <>
+                  {shift.mode?.toUpperCase()} {shift.start_number}–{shift.end_number} ({covered} covered) ·{" "}
+                </>
+              )}
+              {shift.carriers_viewed} matched
             </div>
           </>
         ) : (
-          <div className="text-sm text-muted">Not checked in</div>
+          <div className="text-sm text-muted">
+            Not checked in — your place is still saved either way, but shift reports need a check-in.
+          </div>
         )}
       </div>
       <button
@@ -99,6 +107,11 @@ function EnrichmentPanel({ dotNumber, initial }: { dotNumber: number; initial?: 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    setDetails(initial);
+    setOpen(false);
+  }, [dotNumber, initial]);
+
   async function handleOpen() {
     setOpen((o) => !o);
     if (details !== undefined || loading) return;
@@ -116,21 +129,20 @@ function EnrichmentPanel({ dotNumber, initial }: { dotNumber: number; initial?: 
     }
   }
 
+  const auth = details?.authority;
+
   return (
     <div className="mt-5">
-      <button
-        onClick={handleOpen}
-        className="flex items-center gap-1.5 text-xs text-muted hover:text-ink transition-colors"
-      >
+      <button onClick={handleOpen} className="flex items-center gap-1.5 text-xs text-muted hover:text-ink transition-colors">
         <ChevronDown size={14} className={`transition-transform ${open ? "rotate-180" : ""}`} />
-        {open ? "Hide" : "Show"} owner, officers & more detail
+        {open ? "Hide" : "Show"} owner, authority & more detail
       </button>
 
       {open && (
         <div className="mt-3 bg-surface2 border border-border rounded-xl p-4 animate-fade-in">
           {loading && (
             <div className="flex items-center gap-2 text-muted text-sm py-2">
-              <Loader2 size={14} className="animate-spin" /> Checking the additional public record…
+              <Loader2 size={14} className="animate-spin" /> Checking additional public records…
             </div>
           )}
           {error && <div className="text-bad text-sm">{error}</div>}
@@ -139,6 +151,39 @@ function EnrichmentPanel({ dotNumber, initial }: { dotNumber: number; initial?: 
           )}
           {details && (
             <div className="space-y-4">
+              {auth && (auth.commonAuthority || auth.contractAuthority || auth.brokerAuthority) && (
+                <div>
+                  <div className="text-[11px] uppercase tracking-wide text-muted mb-2 flex items-center gap-1">
+                    <ShieldCheck size={12} /> Authority & insurance on file
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-xs">
+                    <div>
+                      <div className="text-muted">Common</div>
+                      {auth.commonAuthority || "—"}
+                    </div>
+                    <div>
+                      <div className="text-muted">Contract</div>
+                      {auth.contractAuthority || "—"}
+                    </div>
+                    <div>
+                      <div className="text-muted">Broker</div>
+                      {auth.brokerAuthority || "—"}
+                    </div>
+                    <div>
+                      <div className="text-muted">BI/PD</div>
+                      {auth.bipdInsuranceOnFile || "—"}
+                    </div>
+                    <div>
+                      <div className="text-muted">Cargo</div>
+                      {auth.cargoInsuranceOnFile || "—"}
+                    </div>
+                    <div>
+                      <div className="text-muted">Bond</div>
+                      {auth.bondInsuranceOnFile || "—"}
+                    </div>
+                  </div>
+                </div>
+              )}
               {details.officials?.length > 0 && (
                 <div>
                   <div className="text-[11px] uppercase tracking-wide text-muted mb-2">Company officials</div>
@@ -218,9 +263,50 @@ function EnrichmentPanel({ dotNumber, initial }: { dotNumber: number; initial?: 
   );
 }
 
+function CallbackPrompt({
+  onSave,
+  onCancel,
+}: {
+  onSave: (date: string, note: string) => void;
+  onCancel: () => void;
+}) {
+  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [note, setNote] = useState("");
+
+  return (
+    <div className="bg-surface2 border border-accent/40 rounded-lg p-3 mt-2 animate-fade-in">
+      <div className="text-xs text-accent font-medium mb-2 flex items-center gap-1">
+        <Bell size={12} /> When should this come back to you?
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <input
+          type="date"
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          className="bg-surface border border-border rounded px-2 py-1.5 text-sm text-ink focus:border-accent outline-none"
+        />
+        <input
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder="Message — e.g. asked to call after fleet renewal"
+          className="flex-1 min-w-[140px] bg-surface border border-border rounded px-2 py-1.5 text-sm text-ink focus:border-accent outline-none"
+        />
+      </div>
+      <div className="flex justify-end gap-2 mt-2">
+        <button onClick={onCancel} className="text-xs text-muted px-2 py-1">
+          Cancel
+        </button>
+        <button onClick={() => onSave(date, note)} className="text-xs bg-accent text-base font-semibold px-3 py-1.5 rounded-lg">
+          Save reminder
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function DialTool() {
   const { statuses } = useCallStatuses();
-  const { shift, setShift, reload: reloadShift } = useOpenShift();
+  const { shift, setShift } = useOpenShift();
   const [mode, setMode] = useState<Mode>("mc");
   const [startInput, setStartInput] = useState("");
   const [state, setState] = useState("");
@@ -236,8 +322,10 @@ export default function DialTool() {
   const [error, setError] = useState<string | null>(null);
   const [exhausted, setExhausted] = useState(false);
   const [started, setStarted] = useState(false);
+  const [restoring, setRestoring] = useState(true);
   const [notesDraft, setNotesDraft] = useState("");
   const [savingLead, setSavingLead] = useState(false);
+  const [showCallbackPrompt, setShowCallbackPrompt] = useState(false);
   const notesTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Warn before leaving the tab if a shift is currently open.
@@ -252,22 +340,47 @@ export default function DialTool() {
     return () => window.removeEventListener("beforeunload", handler);
   }, [shift]);
 
-  // If we reload mid-shift with progress already saved, offer to resume exactly
-  // where we left off instead of losing the scan position.
+  // Restore exactly where we left off — independent of check-in status, and
+  // survives a full refresh or a crashed/closed browser, because this reads
+  // from the database rather than in-memory component state.
   useEffect(() => {
-    if (shift && shift.end_number && !started) {
-      setMode((shift.mode as Mode) || "mc");
-      setState(shift.state || "");
-      if (shift.min_power_units != null) setMinPU(String(shift.min_power_units));
-      if (shift.max_power_units != null) setMaxPU(String(shift.max_power_units));
-      if (shift.docket_only != null) setDocketOnly(shift.docket_only);
-      setCursor(shift.end_number);
-      setStartNumber(shift.start_number ?? shift.end_number);
-      setStarted(true);
-      fetchNext(shift.end_number, true);
-    }
+    (async () => {
+      try {
+        const res = await fetch("/api/scan-state");
+        const data = await res.json();
+        const s = data.state;
+        if (!s || !s.cursor) return;
+
+        setMode(s.mode || "mc");
+        setState(s.filterState || "");
+        if (s.minPowerUnits != null) setMinPU(String(s.minPowerUnits));
+        if (s.maxPowerUnits != null) setMaxPU(String(s.maxPowerUnits));
+        setDocketOnly(!!s.docketOnly);
+        setStartNumber(s.startNumber ?? null);
+        setCursor(s.cursor);
+
+        const dotsToFetch = [...(s.history ?? []), s.currentDot].filter(Boolean);
+        if (dotsToFetch.length > 0) {
+          const lookupRes = await fetch(`/api/carriers/lookup?dots=${dotsToFetch.join(",")}`);
+          const lookupData = await lookupRes.json();
+          const byDot = new Map(lookupData.carriers.map((c: Carrier) => [c.dot_number, c]));
+          const restoredHistory = (s.history ?? []).map((d: number) => byDot.get(d)).filter(Boolean) as Carrier[];
+          const restoredCurrent = byDot.get(s.currentDot) as Carrier | undefined;
+          setHistory(restoredHistory);
+          if (restoredCurrent) {
+            setCurrent(restoredCurrent);
+            setNotesDraft(getLead(restoredCurrent)?.notes ?? "");
+          }
+        }
+        setStarted(true);
+      } catch {
+        // No saved state, or it failed to load — just start fresh.
+      } finally {
+        setRestoring(false);
+      }
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shift]);
+  }, []);
 
   const buildParams = useCallback(
     (after: number) => {
@@ -281,28 +394,48 @@ export default function DialTool() {
     [mode, state, minPU, maxPU, docketOnly]
   );
 
+  // Persists to profiles.scan_state (always) and to the open shift's ledger
+  // fields (only when checked in) — two different concerns that both need
+  // the same numbers.
   const persistProgress = useCallback(
-    (endNumber: number, firstStart?: number) => {
-      if (!shift) return;
-      fetch("/api/shifts", {
-        method: "PATCH",
+    (endNumber: number, firstStart: number | null, historyDots: number[], currentDot: number) => {
+      fetch("/api/scan-state", {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           mode,
-          state: state || null,
+          filterState: state || null,
           minPowerUnits: minPU ? Number(minPU) : null,
           maxPowerUnits: maxPU ? Number(maxPU) : null,
           docketOnly,
           startNumber: firstStart,
-          endNumber,
+          cursor: endNumber,
+          history: historyDots,
+          currentDot,
         }),
       }).catch(() => {});
+
+      if (shift) {
+        fetch("/api/shifts", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            mode,
+            state: state || null,
+            minPowerUnits: minPU ? Number(minPU) : null,
+            maxPowerUnits: maxPU ? Number(maxPU) : null,
+            docketOnly,
+            startNumber: firstStart ?? undefined,
+            endNumber,
+          }),
+        }).catch(() => {});
+      }
     },
     [shift, mode, state, minPU, maxPU, docketOnly]
   );
 
   const fetchNext = useCallback(
-    async (after: number, isResume = false) => {
+    async (after: number) => {
       setLoading(true);
       setError(null);
       try {
@@ -314,14 +447,22 @@ export default function DialTool() {
           setCurrent(null);
         } else {
           setExhausted(false);
-          if (current && !isResume) setHistory((h) => [...h, current]);
-          setCurrent(data.carrier);
+          setCurrent((prevCurrent) => {
+            setHistory((h) => (prevCurrent ? [...h, prevCurrent] : h));
+            return data.carrier;
+          });
           setNotesDraft(getLead(data.carrier)?.notes ?? "");
           const nextCursor = mode === "dot" ? data.carrier.dot_number : data.carrier.docket_number;
           setCursor(nextCursor);
-          const firstStart = startNumber ?? nextCursor;
-          if (startNumber === null) setStartNumber(nextCursor);
-          persistProgress(nextCursor, startNumber === null ? firstStart : undefined);
+          setStartNumber((prevStart) => {
+            const effectiveStart = prevStart ?? nextCursor;
+            setHistory((h) => {
+              const historyDots = h.map((c) => c.dot_number);
+              persistProgress(nextCursor, effectiveStart, historyDots, data.carrier.dot_number);
+              return h;
+            });
+            return effectiveStart;
+          });
         }
       } catch (e: any) {
         setError(e?.message || "Something went wrong.");
@@ -329,7 +470,7 @@ export default function DialTool() {
         setLoading(false);
       }
     },
-    [buildParams, mode, current, startNumber, persistProgress]
+    [buildParams, mode, persistProgress]
   );
 
   function handleStart(e: React.FormEvent) {
@@ -337,8 +478,10 @@ export default function DialTool() {
     const parsed = parseInt(startInput.replace(/\D/g, ""), 10);
     const after = Number.isFinite(parsed) ? parsed - 1 : 0;
     setStarted(true);
+    setCurrent(null);
     setHistory([]);
     setStartNumber(null);
+    setExhausted(false);
     fetchNext(after);
   }
 
@@ -350,15 +493,22 @@ export default function DialTool() {
   function handleBack() {
     if (history.length === 0) return;
     const prev = history[history.length - 1];
-    setHistory((h) => h.slice(0, -1));
+    const newHistory = history.slice(0, -1);
+    setHistory(newHistory);
     setCurrent(prev);
     setNotesDraft(getLead(prev)?.notes ?? "");
-    const prevCursor = mode === "dot" ? prev.dot_number : prev.docket_number;
-    if (prevCursor) setCursor(prevCursor);
+    const prevCursor = mode === "dot" ? prev.dot_number : prev.docket_number ?? prev.dot_number;
+    setCursor(prevCursor);
     setExhausted(false);
+    persistProgress(
+      prevCursor,
+      startNumber,
+      newHistory.map((c) => c.dot_number),
+      prev.dot_number
+    );
   }
 
-  async function updateLead(patch: { status?: string; priority?: boolean; notes?: string }) {
+  async function updateLead(patch: { status?: string; priority?: boolean; notes?: string; reminder_date?: string; reminder_note?: string }) {
     if (!current) return;
     setSavingLead(true);
     try {
@@ -377,6 +527,15 @@ export default function DialTool() {
     }
   }
 
+  function handleStatusClick(value: string) {
+    if (value === "callback") {
+      setShowCallbackPrompt(true);
+      return;
+    }
+    setShowCallbackPrompt(false);
+    updateLead({ status: value });
+  }
+
   function handleNotesChange(value: string) {
     setNotesDraft(value);
     if (notesTimer.current) clearTimeout(notesTimer.current);
@@ -389,7 +548,7 @@ export default function DialTool() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 pt-5 pb-28">
-      <ShiftStrip shift={shift} setShift={setShift} onCheckIn={() => { setStarted(false); setCurrent(null); setHistory([]); }} />
+      <ShiftStrip shift={shift} setShift={setShift} />
 
       {/* Filters */}
       <form
@@ -478,14 +637,20 @@ export default function DialTool() {
         </div>
       )}
 
-      {!started && !error && (
+      {restoring && (
+        <div className="flex items-center justify-center gap-2 text-muted py-16">
+          <Loader2 size={16} className="animate-spin" /> Checking for a scan in progress…
+        </div>
+      )}
+
+      {!restoring && !started && !error && (
         <div className="text-center text-muted py-16 border border-dashed border-border rounded-xl">
           Set a starting {mode === "mc" ? "MC" : "DOT"} number above and hit{" "}
           <span className="text-ink">Start scan</span>.
         </div>
       )}
 
-      {started && exhausted && (
+      {!restoring && started && exhausted && (
         <div className="text-center text-muted py-16 border border-dashed border-border rounded-xl">
           No more active carriers match these filters from here on. Try raising the range or loosening a filter.
         </div>
@@ -575,7 +740,7 @@ export default function DialTool() {
               {statuses.map((opt) => (
                 <button
                   key={opt.value}
-                  onClick={() => updateLead({ status: opt.value })}
+                  onClick={() => handleStatusClick(opt.value)}
                   className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${statusClass(opt.color)} ${
                     lead?.status === opt.value ? "ring-1 ring-accent" : "opacity-70 hover:opacity-100"
                   }`}
@@ -595,6 +760,16 @@ export default function DialTool() {
                 Important
               </button>
             </div>
+
+            {showCallbackPrompt && (
+              <CallbackPrompt
+                onCancel={() => setShowCallbackPrompt(false)}
+                onSave={(date, note) => {
+                  updateLead({ status: "callback", reminder_date: date, reminder_note: note });
+                  setShowCallbackPrompt(false);
+                }}
+              />
+            )}
 
             <textarea
               value={notesDraft}

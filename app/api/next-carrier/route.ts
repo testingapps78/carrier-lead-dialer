@@ -28,14 +28,11 @@ export async function GET(request: NextRequest) {
   const filters: CarrierFilters = { state, minPowerUnits, maxPowerUnits, docketOnly };
 
   try {
-    // Always ask FMCSA live for "next" — it's the only source that can tell
-    // us with certainty there's no closer match. A local cache of
-    // previously-seen carriers is necessarily patchy (it only knows about
-    // ranges we've already looked up before), so trusting it to answer
-    // "what's the next one after X" can silently skip over a huge unfetched
-    // range and jump to some unrelated leftover result from an earlier scan.
-    // We still write everything we fetch into the cache below — just never
-    // read from it to answer this particular question.
+    // Always ask FMCSA live for "next" — a local cache of previously-seen
+    // carriers is necessarily patchy, so trusting it to answer "what's next
+    // after X" can silently skip over an unfetched range. We still cache
+    // everything we fetch below for other purposes (leads joins, the Back
+    // history), just never read the cache to answer this question.
     const batch = await fetchFmcsaBatch(after, mode, filters, 200);
 
     if (batch.length === 0) {
@@ -55,15 +52,25 @@ export async function GET(request: NextRequest) {
       );
     if (upsertError) throw upsertError;
 
-    // Re-read the first match so the response includes any existing lead
-    // row (status/notes) for this exact, known carrier — a safe single-row
-    // lookup by primary key, not a range scan.
-    const { data: fresh, error: freshError } = await supabase
+    const firstDot = batch[0].dot_number;
+
+    // Two separate, unambiguous lookups rather than one embedded join —
+    // now that a carrier can have one lead row per user, an embedded
+    // `carriers -> leads` join would return every user's row, not just the
+    // caller's own.
+    const { data: freshCarrier, error: freshError } = await supabase
       .from("carriers")
-      .select("*, leads(status, priority, notes, last_called_at)")
-      .eq("dot_number", batch[0].dot_number)
-      .limit(1);
+      .select("*")
+      .eq("dot_number", firstDot)
+      .single();
     if (freshError) throw freshError;
+
+    const { data: ownLead } = await supabase
+      .from("leads")
+      .select("status, priority, notes, last_called_at")
+      .eq("dot_number", firstDot)
+      .eq("user_id", user.id)
+      .maybeSingle();
 
     // Best-effort shift counter — never blocks the lookup if it fails.
     admin.rpc("increment_open_shift_viewed", { p_user_id: user.id }).then(
@@ -71,7 +78,7 @@ export async function GET(request: NextRequest) {
       () => {}
     );
 
-    return NextResponse.json({ carrier: fresh?.[0] ?? batch[0], source: "fmcsa" });
+    return NextResponse.json({ carrier: { ...freshCarrier, leads: ownLead ?? null }, source: "fmcsa" });
   } catch (err: any) {
     console.error("next-carrier error:", err);
     return NextResponse.json(

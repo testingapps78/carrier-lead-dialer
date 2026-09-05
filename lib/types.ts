@@ -26,6 +26,14 @@ export interface MotusDetails {
   cargoClasses: string[];
   vehicles: { type: string; owned: string; leased: string }[];
   fetchedAt: string;
+  authority?: {
+    commonAuthority: string | null;
+    contractAuthority: string | null;
+    brokerAuthority: string | null;
+    bipdInsuranceOnFile: string | null;
+    cargoInsuranceOnFile: string | null;
+    bondInsuranceOnFile: string | null;
+  } | null;
 }
 
 export interface Carrier {

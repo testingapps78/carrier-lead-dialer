@@ -16,6 +16,7 @@ interface UserRow {
 interface ActivityUser {
   id: string;
   full_name: string | null;
+  email?: string | null;
   role: string;
   online: boolean;
 }
@@ -188,11 +189,34 @@ function TeamActivity() {
             {onlineUsers.map((u) => (
               <span key={u.id} className="flex items-center gap-1.5 text-xs bg-good/15 text-good border border-good/30 px-2.5 py-1 rounded-full">
                 <Circle size={7} fill="currentColor" />
-                {u.full_name || "Unnamed"}
+                {u.full_name || u.email || "Unnamed"}
               </span>
             ))}
           </div>
         )}
+      </div>
+
+      <div className="mb-4">
+        <div className="text-[11px] uppercase tracking-wide text-muted mb-2">Export a teammate's data</div>
+        <div className="flex flex-wrap gap-2">
+          {users.map((u) => (
+            <div key={u.id} className="flex items-center gap-1 bg-surface2 rounded-lg pl-2.5 pr-1 py-1">
+              <span className="text-xs">{u.full_name || u.email || "Unnamed"}</span>
+              <a
+                href={`/api/export?kind=leads&user_id=${u.id}`}
+                className="text-[10px] text-accent hover:underline px-1.5"
+              >
+                leads
+              </a>
+              <a
+                href={`/api/export?kind=shifts&user_id=${u.id}`}
+                className="text-[10px] text-accent hover:underline px-1.5"
+              >
+                shifts
+              </a>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="text-[11px] uppercase tracking-wide text-muted mb-2">Shift history</div>

@@ -174,3 +174,42 @@ export async function fetchFmcsaBatch(
   const rows: RawFmcsaRecord[] = await res.json();
   return rows.map(normalize).filter((r): r is NormalizedCarrier => r !== null);
 }
+
+// "Carrier - All With History" (resource 6eyk-hxee) — a separate, structured
+// FMCSA dataset (not the Census File) carrying authority-type status and
+// insurance amounts on file. Its dot_number is stored zero-padded as text,
+// so we cast rather than string-match.
+const AUTHORITY_BASE = "https://data.transportation.gov/resource/6eyk-hxee.json";
+
+export interface AuthorityInsurance {
+  commonAuthority: string | null;
+  contractAuthority: string | null;
+  brokerAuthority: string | null;
+  bipdInsuranceOnFile: string | null;
+  cargoInsuranceOnFile: string | null;
+  bondInsuranceOnFile: string | null;
+}
+
+export async function fetchAuthorityInsurance(dotNumber: number): Promise<AuthorityInsurance | null> {
+  const params = new URLSearchParams({
+    $where: `dot_number::number = ${dotNumber}`,
+    $limit: "1",
+  });
+  const appToken = process.env.SOCRATA_APP_TOKEN;
+  const headers: Record<string, string> = {};
+  if (appToken) headers["X-App-Token"] = appToken;
+
+  const res = await fetch(`${AUTHORITY_BASE}?${params.toString()}`, { headers });
+  if (!res.ok) return null;
+  const rows: any[] = await res.json();
+  if (rows.length === 0) return null;
+  const r = rows[0];
+  return {
+    commonAuthority: r.common_stat ?? null,
+    contractAuthority: r.contract_stat ?? null,
+    brokerAuthority: r.broker_stat ?? null,
+    bipdInsuranceOnFile: r.bipd_file ?? null,
+    cargoInsuranceOnFile: r.cargo_file ?? null,
+    bondInsuranceOnFile: r.bond_file ?? null,
+  };
+}

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { fetchMotusEnrichment } from "@/lib/motus";
+import { fetchAuthorityInsurance } from "@/lib/fmcsa";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ error: "Invalid DOT number." }, { status: 400 });
   }
 
-  // Serve from cache if we've already fetched this carrier's extra detail.
   const { data: cached } = await supabase
     .from("carriers")
     .select("motus_details")
@@ -28,15 +28,28 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 
   try {
-    const details = await fetchMotusEnrichment(dotNumber);
-    if (!details) {
+    const [motus, authority] = await Promise.allSettled([
+      fetchMotusEnrichment(dotNumber),
+      fetchAuthorityInsurance(dotNumber),
+    ]);
+
+    const details = {
+      ...(motus.status === "fulfilled" && motus.value ? motus.value : {}),
+      authority: authority.status === "fulfilled" ? authority.value : null,
+    };
+
+    const hasAnything =
+      (motus.status === "fulfilled" && motus.value) || (authority.status === "fulfilled" && authority.value);
+
+    if (!hasAnything) {
       return NextResponse.json({ details: null, message: "No additional public record found for this carrier." });
     }
+
     const admin = createAdminClient();
     await admin.from("carriers").update({ motus_details: details }).eq("dot_number", dotNumber);
     return NextResponse.json({ details, source: "live" });
   } catch (err: any) {
-    console.error("motus enrich error:", err);
+    console.error("enrich error:", err);
     return NextResponse.json({ error: "Couldn't reach the additional records source right now." }, { status: 502 });
   }
 }

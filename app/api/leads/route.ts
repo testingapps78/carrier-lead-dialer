@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
 
   const update: Record<string, unknown> = {
     dot_number: body.dot_number,
-    assigned_to: user.id,
+    user_id: user.id,
   };
 
   if (body.status !== undefined) {
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
 
   const { data, error } = await supabase
     .from("leads")
-    .upsert(update, { onConflict: "dot_number" })
+    .upsert(update, { onConflict: "dot_number,user_id" })
     .select()
     .single();
 
@@ -73,14 +73,28 @@ export async function GET(request: NextRequest) {
 
   const status = request.nextUrl.searchParams.get("status");
   const search = request.nextUrl.searchParams.get("q");
+  const asUserId = request.nextUrl.searchParams.get("user_id"); // admin-only: view a teammate's leads
 
+  let targetUserId = user.id;
+  if (asUserId && asUserId !== user.id) {
+    const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+    if (profile?.role !== "admin") {
+      return NextResponse.json({ error: "Only admins can view another teammate's leads." }, { status: 403 });
+    }
+    targetUserId = asUserId;
+  }
+
+  // Own client respects RLS naturally; for viewing a teammate as admin we
+  // still scope explicitly by user_id rather than relying on RLS alone, so
+  // the result is that one person's data, not everyone's merged together.
   let query = supabase
     .from("leads")
     .select(
       "*, carriers(legal_name, dba_name, phone, phy_city, phy_state, power_units, docket_prefix, docket_number)"
     )
+    .eq("user_id", targetUserId)
     .order("updated_at", { ascending: false })
-    .limit(200);
+    .limit(500);
 
   if (status) query = query.eq("status", status);
 
@@ -116,7 +130,11 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: "dot_number is required." }, { status: 400 });
   }
 
-  const { error } = await supabase.from("leads").delete().eq("dot_number", Number(dotNumber));
+  const { error } = await supabase
+    .from("leads")
+    .delete()
+    .eq("dot_number", Number(dotNumber))
+    .eq("user_id", user.id);
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

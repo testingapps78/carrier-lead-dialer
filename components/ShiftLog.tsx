@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Play, Square, Phone, Tag, Trash2 } from "lucide-react";
+import { Play, Square, Phone, Tag, Trash2, Download } from "lucide-react";
 import { Shift, formatDuration, formatClock } from "@/lib/types";
 
 export default function ShiftLog() {
@@ -9,6 +9,8 @@ export default function ShiftLog() {
   const [history, setHistory] = useState<Shift[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
 
   function load() {
     setLoading(true);
@@ -41,6 +43,13 @@ export default function ShiftLog() {
     if (!confirm("Delete this shift entry? This can't be undone.")) return;
     await fetch(`/api/shifts?id=${id}`, { method: "DELETE" });
     setHistory((h) => h.filter((s) => s.id !== id));
+  }
+
+  function exportCsv(kind: "leads" | "shifts") {
+    const params = new URLSearchParams({ kind });
+    if (fromDate) params.set("from", fromDate);
+    if (toDate) params.set("to", toDate);
+    window.location.href = `/api/export?${params.toString()}`;
   }
 
   const todayTotal = history
@@ -84,6 +93,39 @@ export default function ShiftLog() {
       </div>
 
       <h2 className="text-sm uppercase tracking-wide text-muted mb-3">Past shifts</h2>
+
+      <div className="bg-surface border border-border rounded-xl p-4 mb-4 flex flex-wrap items-end gap-2">
+        <div>
+          <label className="block text-[11px] uppercase tracking-wide text-muted mb-1">From</label>
+          <input
+            type="date"
+            value={fromDate}
+            onChange={(e) => setFromDate(e.target.value)}
+            className="bg-surface2 border border-border rounded-lg px-2 py-2 text-sm text-ink focus:border-accent outline-none"
+          />
+        </div>
+        <div>
+          <label className="block text-[11px] uppercase tracking-wide text-muted mb-1">To</label>
+          <input
+            type="date"
+            value={toDate}
+            onChange={(e) => setToDate(e.target.value)}
+            className="bg-surface2 border border-border rounded-lg px-2 py-2 text-sm text-ink focus:border-accent outline-none"
+          />
+        </div>
+        <button
+          onClick={() => exportCsv("leads")}
+          className="flex items-center gap-1.5 text-xs bg-surface2 border border-border rounded-lg px-3 py-2 hover:border-accent transition-colors"
+        >
+          <Download size={12} /> Export my leads
+        </button>
+        <button
+          onClick={() => exportCsv("shifts")}
+          className="flex items-center gap-1.5 text-xs bg-surface2 border border-border rounded-lg px-3 py-2 hover:border-accent transition-colors"
+        >
+          <Download size={12} /> Export my shifts
+        </button>
+      </div>
 
       {loading && <div className="text-muted text-center py-8">Loading…</div>}
 

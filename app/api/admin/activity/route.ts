@@ -29,13 +29,17 @@ export async function GET() {
     .limit(200);
   if (shiftsError) return NextResponse.json({ error: shiftsError.message }, { status: 500 });
 
-  const nameById = new Map((profiles ?? []).map((p: any) => [p.id, p.full_name]));
+  const { data: authUsers } = await admin.auth.admin.listUsers();
+  const emailById = new Map((authUsers?.users ?? []).map((u: any) => [u.id, u.email]));
+
+  const nameById = new Map((profiles ?? []).map((p: any) => [p.id, p.full_name || emailById.get(p.id) || "—"]));
   const shiftsWithNames = (shifts ?? []).map((s: any) => ({ ...s, user_name: nameById.get(s.user_id) ?? "—" }));
 
   const ONLINE_WINDOW_MS = 2 * 60 * 1000;
   const now = Date.now();
   const users = (profiles ?? []).map((p: any) => ({
     ...p,
+    email: emailById.get(p.id) ?? null,
     online: p.last_seen_at ? now - new Date(p.last_seen_at).getTime() < ONLINE_WINDOW_MS : false,
   }));
 
