@@ -34,9 +34,13 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const isAuthRoute = request.nextUrl.pathname.startsWith("/login");
+  const isPublicRoute =
+    isAuthRoute ||
+    request.nextUrl.pathname.startsWith("/trial") ||
+    request.nextUrl.pathname.startsWith("/api/trial");
   const isPublicAsset = request.nextUrl.pathname.startsWith("/_next");
 
-  if (!user && !isAuthRoute && !isPublicAsset) {
+  if (!user && !isPublicRoute && !isPublicAsset) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

@@ -76,7 +76,11 @@ export default function LoginPage() {
           </button>
         </form>
         <p className="text-muted text-xs text-center mt-5">
-          No account yet? Ask your admin to add you from the Admin panel.
+          No account yet? Ask your admin to add you from the Admin panel, or{" "}
+          <a href="/trial" className="text-accent hover:underline">
+            try it free
+          </a>
+          .
         </p>
 
         <div className="mt-10 pt-6 border-t border-border/40 flex flex-col items-center gap-2">
