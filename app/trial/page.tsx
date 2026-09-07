@@ -1,4 +1,5 @@
 import TrialDial from "@/components/TrialDial";
+import ThemeToggle from "@/components/ThemeToggle";
 
 export const metadata = {
   title: "Carrier Dialer — Free Trial",
@@ -8,6 +9,9 @@ export const metadata = {
 export default function TrialPage() {
   return (
     <div className="min-h-screen">
+      <div className="flex justify-end px-4 pt-4">
+        <ThemeToggle />
+      </div>
       <TrialDial />
     </div>
   );

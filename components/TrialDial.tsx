@@ -101,7 +101,7 @@ export default function TrialDial() {
         </p>
         <a
           href="mailto:mr.shahzaibali@yahoo.com?subject=Carrier Dialer access"
-          className="inline-flex items-center gap-2 bg-accent text-base font-semibold rounded-xl px-5 py-3 hover:bg-accent/90 transition-colors"
+          className="inline-flex items-center gap-2 bg-accent text-oncolor font-semibold rounded-xl px-5 py-3 hover:bg-accent/90 transition-colors"
         >
           <Mail size={16} /> mr.shahzaibali@yahoo.com
         </a>
@@ -117,20 +117,33 @@ export default function TrialDial() {
         </div>
         <h1 className="font-display text-3xl font-semibold tracking-tight">Carrier Dialer</h1>
         <p className="text-muted text-sm mt-2 max-w-md mx-auto">
-          Live FMCSA carrier data — scan by MC or DOT number, skip inactive authorities automatically, get phone
-          numbers and owner contacts ready to use. Try up to {TRIAL_LIMIT} lookups free, no account needed.
+          Everything FMCSA and SAFER show you — plus what they don't.
         </p>
+        <div className="max-w-md mx-auto mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-left">
+          <div className="bg-surface border border-border rounded-lg p-3">
+            <span className="text-accent font-semibold block mb-0.5">No dead ends</span>
+            Inactive MC numbers skip themselves. Stop clicking into companies that can't take your call.
+          </div>
+          <div className="bg-surface border border-border rounded-lg p-3">
+            <span className="text-accent font-semibold block mb-0.5">Know who to ask for</span>
+            Owner name and direct email, not just a front-desk number.
+          </div>
+          <div className="bg-surface border border-border rounded-lg p-3">
+            <span className="text-accent font-semibold block mb-0.5">One screen, not five tabs</span>
+            Authority, insurance, and fleet size together — no more cross-checking SAFER and Motus separately.
+          </div>
+        </div>
         {remaining !== null && (
-          <p className="text-xs text-accent mt-3">{remaining} of {TRIAL_LIMIT} free lookups left</p>
+          <p className="text-xs text-accent mt-4">{remaining} of {TRIAL_LIMIT} free lookups left</p>
         )}
       </div>
 
       <form onSubmit={handleStart} className="bg-surface border border-border rounded-xl p-4 mb-5 flex flex-wrap items-end gap-3">
         <div className="flex rounded-lg border border-border overflow-hidden text-sm">
-          <button type="button" onClick={() => setMode("mc")} className={`px-3 py-2.5 font-medium ${mode === "mc" ? "bg-accent text-base" : "text-muted"}`}>
+          <button type="button" onClick={() => setMode("mc")} className={`px-3 py-2.5 font-medium ${mode === "mc" ? "bg-accent text-oncolor" : "text-muted"}`}>
             Scan by MC
           </button>
-          <button type="button" onClick={() => setMode("dot")} className={`px-3 py-2.5 font-medium ${mode === "dot" ? "bg-accent text-base" : "text-muted"}`}>
+          <button type="button" onClick={() => setMode("dot")} className={`px-3 py-2.5 font-medium ${mode === "dot" ? "bg-accent text-oncolor" : "text-muted"}`}>
             Scan by DOT
           </button>
         </div>
@@ -163,7 +176,7 @@ export default function TrialDial() {
           <input type="checkbox" checked={docketOnly} onChange={(e) => setDocketOnly(e.target.checked)} />
           Has MC authority
         </label>
-        <button type="submit" className="ml-auto bg-accent text-base font-semibold rounded-lg px-4 py-2.5 hover:bg-accent/90 active:scale-[0.98] transition-all">
+        <button type="submit" className="ml-auto bg-accent text-oncolor font-semibold rounded-lg px-4 py-2.5 hover:bg-accent/90 active:scale-[0.98] transition-all">
           {started ? "Restart" : "Try it"}
         </button>
       </form>
@@ -234,7 +247,7 @@ export default function TrialDial() {
 
           <EnrichmentPanel dotNumber={current.dot_number} endpoint={`/api/trial/enrich/${current.dot_number}`} />
 
-          <button onClick={handleNext} disabled={loading} className="w-full mt-6 bg-accent glow-accent text-base font-semibold rounded-xl py-3.5 hover:bg-accent/90 disabled:opacity-50 transition-all">
+          <button onClick={handleNext} disabled={loading} className="w-full mt-6 bg-accent glow-accent text-oncolor font-semibold rounded-xl py-3.5 hover:bg-accent/90 disabled:opacity-50 transition-all">
             {loading ? "Loading…" : "Next active carrier →"}
           </button>
         </div>

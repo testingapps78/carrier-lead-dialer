@@ -6,6 +6,36 @@
   --font-display: "Oswald", sans-serif;
   --font-body: "Inter", sans-serif;
   --font-mono: "IBM Plex Mono", monospace;
+
+  /* Dark theme (default) */
+  --color-canvas: 11 14 20;
+  --color-surface: 19 24 34;
+  --color-surface2: 26 33 48;
+  --color-border: 35 43 58;
+  --color-ink: 232 236 242;
+  --color-muted: 139 150 168;
+  --color-accent: 245 166 35;
+  --color-accent-dim: 138 99 33;
+  --color-good: 63 178 127;
+  --color-bad: 226 84 75;
+  --color-info: 79 143 232;
+  --color-slate: 86 98 119;
+  --color-oncolor: 15 17 12;
+}
+
+html.light {
+  --color-canvas: 246 247 249;
+  --color-surface: 255 255 255;
+  --color-surface2: 238 240 243;
+  --color-border: 222 226 232;
+  --color-ink: 18 21 27;
+  --color-muted: 91 100 114;
+  --color-accent: 217 137 15;
+  --color-accent-dim: 245 166 35;
+  --color-good: 41 138 92;
+  --color-bad: 199 55 46;
+  --color-info: 41 98 189;
+  --color-slate: 72 80 92;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -17,22 +47,22 @@
 }
 
 html, body {
-  background-color: #0B0E14;
-  color: #E8ECF2;
+  background-color: rgb(var(--color-canvas));
+  color: rgb(var(--color-ink));
 }
 
 * {
-  border-color: #232B3A;
+  border-color: rgb(var(--color-border));
 }
 
 :focus-visible {
-  outline: 2px solid #F5A623;
+  outline: 2px solid rgb(var(--color-accent));
   outline-offset: 2px;
 }
 
 ::selection {
-  background-color: #8A6321;
-  color: #E8ECF2;
+  background-color: rgb(var(--color-accent-dim));
+  color: rgb(var(--color-ink));
 }
 
 input, select, textarea {
@@ -59,8 +89,16 @@ button:active {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.24), 0 12px 28px -10px rgba(0, 0, 0, 0.55);
 }
 
+html.light .elevated {
+  box-shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 12px 28px -10px rgba(20, 24, 32, 0.14);
+}
+
 .glow-accent {
-  box-shadow: 0 0 0 1px rgba(245, 166, 35, 0.18), 0 4px 24px -4px rgba(245, 166, 35, 0.35);
+  box-shadow: 0 0 0 1px rgb(var(--color-accent) / 0.18), 0 4px 24px -4px rgb(var(--color-accent) / 0.35);
+}
+
+html.light .glow-accent {
+  box-shadow: 0 0 0 1px rgb(var(--color-accent) / 0.25), 0 4px 16px -4px rgb(var(--color-accent) / 0.25);
 }
 
 @keyframes fade-in {

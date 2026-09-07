@@ -136,7 +136,7 @@ function StatusManager() {
             <option key={c} value={c}>{c}</option>
           ))}
         </select>
-        <button type="submit" disabled={adding} className="flex items-center gap-1.5 bg-accent text-base font-semibold rounded-lg px-3 py-2 text-sm disabled:opacity-50">
+        <button type="submit" disabled={adding} className="flex items-center gap-1.5 bg-accent text-oncolor font-semibold rounded-lg px-3 py-2 text-sm disabled:opacity-50">
           <Plus size={14} /> Add
         </button>
       </form>
@@ -339,7 +339,7 @@ export default function AdminPanel({ currentUserId }: { currentUserId: string })
         <h2 className="font-display text-lg font-semibold">Team access</h2>
         <button
           onClick={() => setShowForm((s) => !s)}
-          className="bg-accent text-base font-semibold rounded-lg px-3.5 py-2 text-sm hover:bg-accent/90 transition-colors"
+          className="bg-accent text-oncolor font-semibold rounded-lg px-3.5 py-2 text-sm hover:bg-accent/90 transition-colors"
         >
           {showForm ? "Cancel" : "+ Add teammate"}
         </button>
@@ -384,7 +384,7 @@ export default function AdminPanel({ currentUserId }: { currentUserId: string })
           <button
             type="submit"
             disabled={submitting}
-            className="bg-accent text-base font-semibold rounded-lg px-4 py-2 text-sm hover:bg-accent/90 disabled:opacity-50 transition-colors"
+            className="bg-accent text-oncolor font-semibold rounded-lg px-4 py-2 text-sm hover:bg-accent/90 disabled:opacity-50 transition-colors"
           >
             {submitting ? "Adding…" : "Add teammate"}
           </button>

@@ -69,7 +69,7 @@ export default function TeamFeed({ isAdmin, userId }: { isAdmin: boolean; userId
           <button
             type="submit"
             disabled={sending || !body.trim()}
-            className="flex items-center gap-1.5 bg-accent text-base font-semibold rounded-lg px-3.5 py-2 text-sm disabled:opacity-50"
+            className="flex items-center gap-1.5 bg-accent text-oncolor font-semibold rounded-lg px-3.5 py-2 text-sm disabled:opacity-50"
           >
             <Send size={13} /> Post
           </button>

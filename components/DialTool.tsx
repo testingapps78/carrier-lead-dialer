@@ -133,7 +133,7 @@ function CallbackPrompt({
         <button onClick={onCancel} className="text-xs text-muted px-2 py-1">
           Cancel
         </button>
-        <button onClick={() => onSave(date, note)} className="text-xs bg-accent text-base font-semibold px-3 py-1.5 rounded-lg">
+        <button onClick={() => onSave(date, note)} className="text-xs bg-accent text-oncolor font-semibold px-3 py-1.5 rounded-lg">
           Save reminder
         </button>
       </div>
@@ -396,14 +396,14 @@ export default function DialTool() {
           <button
             type="button"
             onClick={() => setMode("mc")}
-            className={`px-3 py-2.5 font-medium ${mode === "mc" ? "bg-accent text-base" : "text-muted"}`}
+            className={`px-3 py-2.5 font-medium ${mode === "mc" ? "bg-accent text-oncolor" : "text-muted"}`}
           >
             Scan by MC
           </button>
           <button
             type="button"
             onClick={() => setMode("dot")}
-            className={`px-3 py-2.5 font-medium ${mode === "dot" ? "bg-accent text-base" : "text-muted"}`}
+            className={`px-3 py-2.5 font-medium ${mode === "dot" ? "bg-accent text-oncolor" : "text-muted"}`}
           >
             Scan by DOT
           </button>
@@ -462,7 +462,7 @@ export default function DialTool() {
 
         <button
           type="submit"
-          className="ml-auto bg-accent text-base font-semibold rounded-lg px-4 py-2.5 hover:bg-accent/90 active:scale-[0.98] transition-all"
+          className="ml-auto bg-accent text-oncolor font-semibold rounded-lg px-4 py-2.5 hover:bg-accent/90 active:scale-[0.98] transition-all"
         >
           {started ? "Restart scan" : "Start scan"}
         </button>
@@ -629,7 +629,7 @@ export default function DialTool() {
             <button
               onClick={handleNext}
               disabled={loading}
-              className="flex-1 bg-accent glow-accent text-base font-semibold rounded-xl py-3.5 hover:bg-accent/90 disabled:opacity-50 transition-all"
+              className="flex-1 bg-accent glow-accent text-oncolor font-semibold rounded-xl py-3.5 hover:bg-accent/90 disabled:opacity-50 transition-all"
             >
               {loading ? "Loading…" : "Next active carrier →"}
             </button>

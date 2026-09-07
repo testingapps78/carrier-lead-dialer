@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import ThemeToggle from "@/components/ThemeToggle";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -27,7 +28,10 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center px-4">
+    <main className="min-h-screen flex items-center justify-center px-4 relative">
+      <div className="absolute top-4 right-4">
+        <ThemeToggle />
+      </div>
       <div className="w-full max-w-sm animate-fade-in">
         <div className="mb-8 text-center">
           <div className="mile-marker inline-block border-2 border-accent text-accent px-3 py-1 text-sm font-semibold tracking-widest rounded-lg glow-accent">
@@ -70,7 +74,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-accent glow-accent text-base font-semibold rounded-lg py-3 hover:bg-accent/90 disabled:opacity-50 transition-all"
+            className="w-full bg-accent glow-accent text-oncolor font-semibold rounded-lg py-3 hover:bg-accent/90 disabled:opacity-50 transition-all"
           >
             {loading ? "Signing in…" : "Sign in"}
           </button>

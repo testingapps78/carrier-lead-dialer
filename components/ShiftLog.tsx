@@ -73,7 +73,7 @@ export default function ShiftLog() {
             onClick={toggle}
             disabled={busy}
             className={`flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors disabled:opacity-50 ${
-              open ? "bg-bad/15 text-bad border border-bad/30" : "bg-good text-base"
+              open ? "bg-bad/15 text-bad border border-bad/30" : "bg-good text-oncolor"
             }`}
           >
             {open ? <Square size={14} /> : <Play size={14} />}

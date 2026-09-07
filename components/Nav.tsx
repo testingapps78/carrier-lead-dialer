@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Phone, ListChecks, Clock, Settings, LogOut, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import ThemeToggle from "@/components/ThemeToggle";
 
 export default function Nav({ isAdmin }: { isAdmin: boolean }) {
   const pathname = usePathname();
@@ -35,7 +36,7 @@ export default function Nav({ isAdmin }: { isAdmin: boolean }) {
   return (
     <>
       {/* Slim top bar — identity + sign out, no nav links here anymore */}
-      <header className="sticky top-0 z-30 border-b border-border/60 bg-base/85 backdrop-blur-md">
+      <header className="sticky top-0 z-30 border-b border-border/60 bg-canvas/85 backdrop-blur-md">
         <div className="max-w-3xl mx-auto px-4 h-12 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <img src="/logo-mark.png" alt="" className="h-5 w-auto opacity-90" />
@@ -43,13 +44,16 @@ export default function Nav({ isAdmin }: { isAdmin: boolean }) {
               Carrier Dialer
             </span>
           </div>
-          <button
-            onClick={signOut}
-            aria-label="Sign out"
-            className="text-muted hover:text-ink transition-colors p-1.5 -mr-1.5 rounded-full hover:bg-surface2"
-          >
-            <LogOut size={16} strokeWidth={2} />
-          </button>
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
+            <button
+              onClick={signOut}
+              aria-label="Sign out"
+              className="text-muted hover:text-ink transition-colors p-1.5 rounded-full hover:bg-surface2"
+            >
+              <LogOut size={16} strokeWidth={2} />
+            </button>
+          </div>
         </div>
       </header>
 

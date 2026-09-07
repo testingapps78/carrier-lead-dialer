@@ -10,6 +10,7 @@ import "@fontsource/ibm-plex-mono/400.css";
 import "@fontsource/ibm-plex-mono/500.css";
 import "@fontsource/ibm-plex-mono/600.css";
 import "./globals.css";
+import { ThemeInitScript } from "@/components/ThemeToggle";
 
 export const metadata: Metadata = {
   title: "Carrier Dialer",
@@ -23,7 +24,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="font-body bg-base text-ink min-h-screen antialiased">
+      <head>
+        <ThemeInitScript />
+      </head>
+      <body className="font-body bg-canvas text-ink min-h-screen antialiased">
         {children}
       </body>
     </html>
