@@ -34,9 +34,16 @@ export async function GET(request: NextRequest) {
 
   let targetUserId = user.id;
   if (requestedUserId && requestedUserId !== user.id) {
-    const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+    const { data: profile } = await supabase.from("profiles").select("role, organization_id").eq("id", user.id).single();
     if (profile?.role !== "admin") {
       return NextResponse.json({ error: "Only admins can export another teammate's data." }, { status: 403 });
+    }
+    // Service-role calls below bypass RLS, so confirm the target is
+    // actually in this admin's own organization before using their id.
+    const admin0 = createAdminClient();
+    const { data: target } = await admin0.from("profiles").select("organization_id").eq("id", requestedUserId).maybeSingle();
+    if (!target || target.organization_id !== profile.organization_id) {
+      return NextResponse.json({ error: "That user isn't in your organization." }, { status: 404 });
     }
     targetUserId = requestedUserId;
   }

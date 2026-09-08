@@ -12,14 +12,14 @@ async function requireAdmin() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, organization_id")
     .eq("id", user.id)
     .single();
 
   if (profile?.role !== "admin") {
     return { ok: false as const, status: 403, error: "Admin access required." };
   }
-  return { ok: true as const, user };
+  return { ok: true as const, user, organizationId: profile.organization_id as string };
 }
 
 export async function GET() {
@@ -27,9 +27,12 @@ export async function GET() {
   if (!check.ok) return NextResponse.json({ error: check.error }, { status: check.status });
 
   const admin = createAdminClient();
+  // Service-role bypasses RLS entirely, so the organization filter has to
+  // happen explicitly here — this is the one place RLS alone won't protect.
   const { data: profiles, error: profilesError } = await admin
     .from("profiles")
-    .select("id, full_name, role, created_at, last_seen_at");
+    .select("id, full_name, role, created_at, last_seen_at")
+    .eq("organization_id", check.organizationId);
   if (profilesError) {
     return NextResponse.json({ error: profilesError.message }, { status: 500 });
   }
@@ -62,7 +65,9 @@ export async function POST(request: NextRequest) {
     email: body.email,
     password: body.password,
     email_confirm: true,
-    user_metadata: { full_name: body.full_name ?? null },
+    // organization_id always comes from the inviting admin's own org — a
+    // teammate they add can never end up anywhere but their own company.
+    user_metadata: { full_name: body.full_name ?? null, organization_id: check.organizationId },
   });
 
   if (error) {
@@ -94,6 +99,7 @@ export async function PATCH(request: NextRequest) {
     .from("profiles")
     .update({ role: body.role })
     .eq("id", body.id)
+    .eq("organization_id", check.organizationId) // can't touch another company's user
     .select()
     .single();
 
@@ -113,6 +119,15 @@ export async function DELETE(request: NextRequest) {
   }
 
   const admin = createAdminClient();
+
+  // Confirm the target is actually in the caller's org before deleting —
+  // service-role auth.admin calls bypass RLS entirely, so this check has to
+  // happen in code, not the database.
+  const { data: target } = await admin.from("profiles").select("organization_id").eq("id", id).maybeSingle();
+  if (!target || target.organization_id !== check.organizationId) {
+    return NextResponse.json({ error: "User not found in your organization." }, { status: 404 });
+  }
+
   const { error } = await admin.auth.admin.deleteUser(id);
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

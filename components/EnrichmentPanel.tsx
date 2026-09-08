@@ -54,7 +54,7 @@ export default function EnrichmentPanel({
         <div className="mt-3 bg-surface2 border border-border rounded-xl p-4 animate-fade-in">
           {loading && (
             <div className="flex items-center gap-2 text-muted text-sm py-2">
-              <Loader2 size={14} className="animate-spin" /> Checking additional public records…
+              <Loader2 size={14} className="animate-spin" /> Checking additional public records — can take up to 15s…
             </div>
           )}
           {error && <div className="text-bad text-sm">{error}</div>}

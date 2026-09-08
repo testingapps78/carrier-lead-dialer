@@ -1,11 +1,18 @@
 // Enriches a carrier we already found (via the FMCSA Census File) with the
 // extra detail FMCSA now publishes on its newer Motus registration system —
 // company officials (names/titles/emails), DUNS, state of incorporation,
-// and a vehicle-type breakdown. Motus has no public JSON API yet, so this
-// reads the same public account page a browser would, and parses it by
-// looking for the field labels rather than CSS classes/structure — labels
-// are what we can actually confirm from real examples, and are far less
-// likely to break if Motus's markup changes than a class-name guess would be.
+// and a vehicle-type breakdown.
+//
+// IMPORTANT: motus.dot.gov is a client-rendered JavaScript app — its raw
+// HTML response is just an empty shell ("you need to enable JavaScript to
+// run this app"). A plain fetch() can never see the actual data, so this
+// runs a real (headless) browser server-side to let the page's own
+// JavaScript build the content, then reads the result. That's slower and
+// heavier than a normal API call, and this specific site is built as an
+// anti-fraud identity system, so it may have defenses against automated
+// browsers that a plain HTTP client wouldn't hit. Parsing is done by
+// looking for the field labels rather than CSS classes/structure, since
+// labels are what we can actually confirm from real examples.
 import * as cheerio from "cheerio";
 
 export interface MotusOfficial {
@@ -31,6 +38,42 @@ export interface MotusEnrichment {
   cargoClasses: string[];
   vehicles: MotusVehicle[];
   fetchedAt: string;
+}
+
+async function renderMotusPage(dotNumber: number): Promise<string | null> {
+  // Deferred imports: these packages bundle a Chromium binary and should
+  // only ever load inside the serverless function that actually needs them.
+  const chromium = (await import("@sparticuz/chromium")).default;
+  const puppeteer = await import("puppeteer-core");
+
+  let browser: import("puppeteer-core").Browser | null = null;
+  try {
+    browser = await puppeteer.launch({
+      args: chromium.args,
+      executablePath: await chromium.executablePath(),
+      headless: true,
+    });
+
+    const page = await browser.newPage();
+    page.setDefaultNavigationTimeout(9000);
+
+    await page.goto(`https://motus.dot.gov/customer/${dotNumber}/account`, {
+      waitUntil: "networkidle0",
+      timeout: 9000,
+    });
+
+    // Give the SPA's own render pass a brief moment past "network idle" —
+    // some data can finish binding to the DOM just after the last request.
+    await new Promise((resolve) => setTimeout(resolve, 800));
+
+    const html = await page.content();
+    return html;
+  } catch (err) {
+    console.error("motus headless render failed:", err);
+    return null;
+  } finally {
+    if (browser) await browser.close().catch(() => {});
+  }
 }
 
 function textAfterLabel($: cheerio.CheerioAPI, label: string): string | null {
@@ -120,11 +163,8 @@ function parseBoldedOptions($: cheerio.CheerioAPI, sectionHeading: string): stri
 }
 
 export async function fetchMotusEnrichment(dotNumber: number): Promise<MotusEnrichment | null> {
-  const res = await fetch(`https://motus.dot.gov/customer/${dotNumber}/account`, {
-    headers: { "User-Agent": "Mozilla/5.0 (compatible; CarrierDialer/1.0)" },
-  });
-  if (!res.ok) return null;
-  const html = await res.text();
+  const html = await renderMotusPage(dotNumber);
+  if (!html) return null;
   const $ = cheerio.load(html);
 
   // If the page is a login wall rather than a public record, bail out cleanly.

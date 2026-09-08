@@ -253,7 +253,7 @@ function TeamActivity() {
   );
 }
 
-export default function AdminPanel({ currentUserId }: { currentUserId: string }) {
+export default function AdminPanel({ currentUserId, isSuperAdmin }: { currentUserId: string; isSuperAdmin?: boolean }) {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -417,6 +417,14 @@ export default function AdminPanel({ currentUserId }: { currentUserId: string })
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {isSuperAdmin && (
+        <div className="mt-8 pt-5 border-t border-border/40 text-center">
+          <a href="/superadmin" className="text-xs text-muted hover:text-accent transition-colors">
+            Platform — onboard a new company &rarr;
+          </a>
         </div>
       )}
     </div>

@@ -4,6 +4,7 @@ import { fetchMotusEnrichment } from "@/lib/motus";
 import { fetchAuthorityInsurance } from "@/lib/fmcsa";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 export async function GET(_request: Request, { params }: { params: Promise<{ dot: string }> }) {
   const dotNumber = Number((await params).dot);

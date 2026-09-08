@@ -1,23 +1,22 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import Nav from "@/components/Nav";
-import AdminPanel from "@/components/AdminPanel";
+import SuperAdminPanel from "@/components/SuperAdminPanel";
 
-export default async function AdminPage() {
+export default async function SuperAdminPage() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
   if (!user) redirect("/login");
 
   const { data: profile } = await supabase.from("profiles").select("role, is_super_admin").eq("id", user.id).single();
-  if (profile?.role !== "admin") redirect("/dial");
+  if (!profile?.is_super_admin) redirect("/dial");
 
   return (
     <>
-      <Nav isAdmin={true} />
-      <AdminPanel currentUserId={user.id} isSuperAdmin={!!profile?.is_super_admin} />
+      <Nav isAdmin={profile.role === "admin"} />
+      <SuperAdminPanel />
     </>
   );
 }
