@@ -48,7 +48,14 @@ export async function POST() {
     return NextResponse.json({ shift: existing, message: "Already checked in." });
   }
 
-  const { data, error } = await supabase.from("shifts").insert({ user_id: user.id }).select().single();
+  const { data: profile } = await supabase.from("profiles").select("organization_id").eq("id", user.id).single();
+  if (!profile) return NextResponse.json({ error: "Profile not found." }, { status: 500 });
+
+  const { data, error } = await supabase
+    .from("shifts")
+    .insert({ user_id: user.id, organization_id: profile.organization_id })
+    .select()
+    .single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ shift: data });
 }

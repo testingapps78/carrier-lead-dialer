@@ -12,11 +12,11 @@ async function requireAdmin() {
   } = await supabase.auth.getUser();
   if (!user) return { ok: false as const, status: 401, error: "Not signed in." };
 
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+  const { data: profile } = await supabase.from("profiles").select("role, organization_id").eq("id", user.id).single();
   if (profile?.role !== "admin") {
     return { ok: false as const, status: 403, error: "Admin access required." };
   }
-  return { ok: true as const, supabase };
+  return { ok: true as const, supabase, organizationId: profile.organization_id as string };
 }
 
 function slugify(label: string): string {
@@ -57,6 +57,7 @@ export async function POST(request: NextRequest) {
   const { data: maxRow } = await check.supabase
     .from("call_statuses")
     .select("sort_order")
+    .eq("organization_id", check.organizationId)
     .order("sort_order", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -64,7 +65,7 @@ export async function POST(request: NextRequest) {
 
   const { data, error } = await check.supabase
     .from("call_statuses")
-    .insert({ value, label: body.label, color, sort_order: nextOrder })
+    .insert({ value, label: body.label, color, sort_order: nextOrder, organization_id: check.organizationId })
     .select()
     .single();
 

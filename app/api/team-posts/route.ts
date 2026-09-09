@@ -30,10 +30,12 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
   if (!body?.body?.trim()) return NextResponse.json({ error: "Message can't be empty." }, { status: 400 });
 
+  const { data: profile } = await supabase.from("profiles").select("role, organization_id").eq("id", user.id).single();
+  if (!profile) return NextResponse.json({ error: "Profile not found." }, { status: 500 });
+
   let isBroadcast = false;
   if (body.isBroadcast) {
-    const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-    if (profile?.role !== "admin") {
+    if (profile.role !== "admin") {
       return NextResponse.json({ error: "Only admins can post announcements." }, { status: 403 });
     }
     isBroadcast = true;
@@ -43,6 +45,7 @@ export async function POST(request: NextRequest) {
     .from("team_posts")
     .insert({
       author_id: user.id,
+      organization_id: profile.organization_id,
       body: body.body.trim().slice(0, 2000),
       dot_number: body.dotNumber ?? null,
       is_broadcast: isBroadcast,

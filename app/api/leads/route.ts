@@ -17,9 +17,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "dot_number is required." }, { status: 400 });
   }
 
+  const { data: profile } = await supabase.from("profiles").select("organization_id").eq("id", user.id).single();
+  if (!profile) return NextResponse.json({ error: "Profile not found." }, { status: 500 });
+
   const update: Record<string, unknown> = {
     dot_number: body.dot_number,
     user_id: user.id,
+    organization_id: profile.organization_id,
   };
 
   if (body.status !== undefined) {
@@ -27,6 +31,7 @@ export async function POST(request: NextRequest) {
       .from("call_statuses")
       .select("value")
       .eq("value", body.status)
+      .eq("organization_id", profile.organization_id)
       .maybeSingle();
     if (!validStatus) {
       return NextResponse.json({ error: "Invalid status." }, { status: 400 });
