@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Phone, ListChecks, Clock, Settings, LogOut, Users } from "lucide-react";
+import { Phone, ListChecks, Clock, Settings, LogOut, Users, UserCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import ThemeToggle from "@/components/ThemeToggle";
 
@@ -46,6 +46,13 @@ export default function Nav({ isAdmin }: { isAdmin: boolean }) {
           </div>
           <div className="flex items-center gap-1">
             <ThemeToggle />
+            <Link
+              href="/account"
+              aria-label="Account settings"
+              className="text-muted hover:text-ink transition-colors p-1.5 rounded-full hover:bg-surface2"
+            >
+              <UserCircle size={16} strokeWidth={2} />
+            </Link>
             <button
               onClick={signOut}
               aria-label="Sign out"

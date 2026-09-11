@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Trash2, Plus, GripVertical, Circle, ShieldCheck, Shield } from "lucide-react";
+import { Trash2, Plus, GripVertical, Circle, ShieldCheck, Shield, Monitor, LogOut } from "lucide-react";
 import { statusClass, formatDuration, formatClock } from "@/lib/types";
+import { describeUserAgent } from "@/lib/userAgent";
 import { useCallStatuses } from "@/lib/useCallStatuses";
 
 interface UserRow {
@@ -253,6 +254,60 @@ function TeamActivity() {
   );
 }
 
+function OrgSessions() {
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  function load() {
+    fetch("/api/sessions?scope=org")
+      .then((r) => r.json())
+      .then((d) => setSessions(d.sessions ?? []))
+      .finally(() => setLoading(false));
+  }
+
+  useEffect(load, []);
+
+  async function revoke(id: string) {
+    if (!confirm("Sign this device out immediately?")) return;
+    await fetch("/api/sessions", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    load();
+  }
+
+  return (
+    <div className="bg-surface border border-border rounded-xl p-5 mb-6">
+      <h2 className="font-display text-lg font-semibold mb-1 flex items-center gap-2">
+        <Monitor size={16} /> Active devices
+      </h2>
+      <p className="text-muted text-sm mb-4">Every signed-in device across your team. Sessions time out on their own after 1 hour.</p>
+
+      {loading ? (
+        <div className="text-muted text-sm py-3">Loading…</div>
+      ) : sessions.length === 0 ? (
+        <div className="text-muted text-sm py-3">No active sessions right now.</div>
+      ) : (
+        <div className="space-y-1.5">
+          {sessions.map((s) => (
+            <div key={s.id} className="flex items-center gap-3 text-xs bg-surface2 rounded-lg px-3 py-2">
+              <span className="font-medium w-24 truncate shrink-0">{s.user_name}</span>
+              <span className="text-muted flex-1 truncate">{describeUserAgent(s.user_agent)}</span>
+              <span className="text-muted shrink-0">
+                {new Date(s.last_active_at).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
+              </span>
+              <button onClick={() => revoke(s.id)} className="flex items-center gap-1 text-bad hover:underline shrink-0">
+                <LogOut size={11} /> Sign out
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AdminPanel({ currentUserId, isSuperAdmin }: { currentUserId: string; isSuperAdmin?: boolean }) {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -334,6 +389,7 @@ export default function AdminPanel({ currentUserId, isSuperAdmin }: { currentUse
 
       <StatusManager />
       <TeamActivity />
+      <OrgSessions />
 
       <div className="flex items-center justify-between mb-4">
         <h2 className="font-display text-lg font-semibold">Team access</h2>

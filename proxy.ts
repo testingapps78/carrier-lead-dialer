@@ -40,6 +40,34 @@ export async function proxy(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/api/trial");
   const isPublicAsset = request.nextUrl.pathname.startsWith("/_next");
 
+  if (user && !isPublicRoute) {
+    const sessionStart = request.cookies.get("cd_session_start")?.value;
+    const sessionId = request.cookies.get("cd_session_id")?.value;
+    const ageMs = sessionStart ? Date.now() - new Date(sessionStart).getTime() : Infinity;
+    const ONE_HOUR = 60 * 60 * 1000;
+
+    let revoked = false;
+    if (sessionId) {
+      const { data: sessionRow } = await supabase
+        .from("user_sessions")
+        .select("revoked")
+        .eq("id", sessionId)
+        .maybeSingle();
+      revoked = !!sessionRow?.revoked;
+    }
+
+    if (ageMs > ONE_HOUR || revoked) {
+      await supabase.auth.signOut();
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      url.searchParams.set("expired", "1");
+      const redirect = NextResponse.redirect(url);
+      redirect.cookies.delete("cd_session_start");
+      redirect.cookies.delete("cd_session_id");
+      return redirect;
+    }
+  }
+
   if (!user && !isPublicRoute && !isPublicAsset) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
