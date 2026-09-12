@@ -43,28 +43,42 @@ export async function proxy(request: NextRequest) {
   if (user && !isPublicRoute) {
     const sessionStart = request.cookies.get("cd_session_start")?.value;
     const sessionId = request.cookies.get("cd_session_id")?.value;
-    const ageMs = sessionStart ? Date.now() - new Date(sessionStart).getTime() : Infinity;
     const ONE_HOUR = 60 * 60 * 1000;
 
-    let revoked = false;
-    if (sessionId) {
-      const { data: sessionRow } = await supabase
-        .from("user_sessions")
-        .select("revoked")
-        .eq("id", sessionId)
-        .maybeSingle();
-      revoked = !!sessionRow?.revoked;
-    }
+    if (!sessionStart) {
+      // No tracked start time yet — either this is a session from before
+      // this feature existed, or the post-login call that sets it hasn't
+      // landed. Either way, "unknown" must start the clock now, not be
+      // treated as "already expired", or nobody could ever stay logged in.
+      response.cookies.set("cd_session_start", new Date().toISOString(), {
+        httpOnly: true,
+        sameSite: "lax",
+        maxAge: 60 * 60 * 24 * 365,
+        path: "/",
+      });
+    } else {
+      const ageMs = Date.now() - new Date(sessionStart).getTime();
 
-    if (ageMs > ONE_HOUR || revoked) {
-      await supabase.auth.signOut();
-      const url = request.nextUrl.clone();
-      url.pathname = "/login";
-      url.searchParams.set("expired", "1");
-      const redirect = NextResponse.redirect(url);
-      redirect.cookies.delete("cd_session_start");
-      redirect.cookies.delete("cd_session_id");
-      return redirect;
+      let revoked = false;
+      if (sessionId) {
+        const { data: sessionRow } = await supabase
+          .from("user_sessions")
+          .select("revoked")
+          .eq("id", sessionId)
+          .maybeSingle();
+        revoked = !!sessionRow?.revoked;
+      }
+
+      if (ageMs > ONE_HOUR || revoked) {
+        await supabase.auth.signOut();
+        const url = request.nextUrl.clone();
+        url.pathname = "/login";
+        url.searchParams.set("expired", "1");
+        const redirect = NextResponse.redirect(url);
+        redirect.cookies.delete("cd_session_start");
+        redirect.cookies.delete("cd_session_id");
+        return redirect;
+      }
     }
   }
 
