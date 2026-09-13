@@ -11,7 +11,7 @@ export async function POST() {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
 
-  await supabase.from("profiles").update({ last_seen_at: new Date().toISOString() }).eq("id", user.id);
+  await supabase.rpc("touch_last_seen");
 
   const sessionId = (await cookies()).get("cd_session_id")?.value;
   if (sessionId) {

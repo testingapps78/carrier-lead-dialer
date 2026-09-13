@@ -4,12 +4,19 @@ import { useEffect, useState } from "react";
 import { Megaphone, Send, Trash2 } from "lucide-react";
 import { TeamPost } from "@/lib/types";
 
+interface OnlineMember {
+  id: string;
+  name: string;
+  online: boolean;
+}
+
 export default function TeamFeed({ isAdmin, userId }: { isAdmin: boolean; userId: string }) {
   const [posts, setPosts] = useState<TeamPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [body, setBody] = useState("");
   const [asBroadcast, setAsBroadcast] = useState(false);
   const [sending, setSending] = useState(false);
+  const [members, setMembers] = useState<OnlineMember[]>([]);
 
   function load() {
     setLoading(true);
@@ -19,7 +26,19 @@ export default function TeamFeed({ isAdmin, userId }: { isAdmin: boolean; userId
       .finally(() => setLoading(false));
   }
 
+  function loadPresence() {
+    fetch("/api/team/online")
+      .then((r) => r.json())
+      .then((d) => setMembers(d.members ?? []))
+      .catch(() => {});
+  }
+
   useEffect(load, []);
+  useEffect(() => {
+    loadPresence();
+    const id = setInterval(loadPresence, 30000);
+    return () => clearInterval(id);
+  }, []);
 
   async function send(e: React.FormEvent) {
     e.preventDefault();
@@ -48,6 +67,22 @@ export default function TeamFeed({ isAdmin, userId }: { isAdmin: boolean; userId
   return (
     <div className="max-w-3xl mx-auto px-4 pt-5 pb-28">
       <h1 className="font-display text-2xl font-semibold tracking-tight mb-4">Team feed</h1>
+
+      {members.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-5">
+          {members.map((m) => (
+            <span
+              key={m.id}
+              className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border ${
+                m.online ? "bg-good/15 text-good border-good/40" : "bg-surface2 text-muted border-border"
+              }`}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${m.online ? "bg-good" : "bg-muted"}`} />
+              {m.name}
+            </span>
+          ))}
+        </div>
+      )}
 
       <form onSubmit={send} className="bg-surface border border-border rounded-xl p-4 mb-5">
         <textarea
