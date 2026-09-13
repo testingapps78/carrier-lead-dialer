@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Trash2, Plus, GripVertical, Circle, ShieldCheck, Shield, Monitor, LogOut } from "lucide-react";
+import Link from "next/link";
+import { Trash2, Plus, GripVertical, Circle, ShieldCheck, Shield, Monitor, LogOut, Coffee, ChevronRight } from "lucide-react";
 import { statusClass, formatDuration, formatClock } from "@/lib/types";
 import { describeUserAgent } from "@/lib/userAgent";
 import { useCallStatuses } from "@/lib/useCallStatuses";
@@ -386,6 +387,20 @@ export default function AdminPanel({ currentUserId, isSuperAdmin }: { currentUse
   return (
     <div className="max-w-3xl mx-auto px-4 pt-5 pb-28">
       <h1 className="font-display text-2xl font-semibold tracking-tight mb-4">Admin</h1>
+
+      <Link
+        href="/admin/attendance"
+        className="flex items-center justify-between bg-surface border border-border rounded-xl px-4 py-3 mb-4 hover:border-accent transition-colors"
+      >
+        <div className="flex items-center gap-2.5">
+          <Coffee size={16} className="text-accent" />
+          <div>
+            <div className="text-sm font-medium text-ink">Attendance dashboard</div>
+            <div className="text-xs text-muted">Live status, shift schedules, corrections</div>
+          </div>
+        </div>
+        <ChevronRight size={16} className="text-muted" />
+      </Link>
 
       <StatusManager />
       <TeamActivity />
