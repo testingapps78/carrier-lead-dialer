@@ -45,6 +45,8 @@ export interface Carrier {
   phone: string | null;
   cell_phone: string | null;
   email: string | null;
+  company_rep1: string | null;
+  company_rep2: string | null;
   phy_street: string | null;
   phy_city: string | null;
   phy_state: string | null;

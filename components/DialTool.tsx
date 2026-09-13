@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Phone, PhoneCall, MapPin, Truck, Star, Play, Square, Loader2, ChevronLeft, Bell } from "lucide-react";
+import { Phone, PhoneCall, Mail, MapPin, Truck, Star, Play, Square, Loader2, ChevronLeft, Bell } from "lucide-react";
 import { Carrier, Shift, formatPhone, getLead, statusClass, formatDuration } from "@/lib/types";
 import { useCallStatuses } from "@/lib/useCallStatuses";
 import CopyButton from "@/components/CopyButton";
@@ -571,6 +571,23 @@ export default function DialTool() {
                   {[current.phy_city, current.phy_state, current.phy_zip].filter(Boolean).join(", ") || "—"}
                 </div>
                 <div className="text-muted text-xs mt-0.5">{current.phy_street}</div>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <Mail size={16} className="text-muted mt-0.5 shrink-0" />
+              <div>
+                <div className="text-[11px] uppercase tracking-wide text-muted mb-1">Contact</div>
+                {current.email ? (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm break-all">{current.email}</span>
+                    <CopyButton value={current.email} />
+                  </div>
+                ) : (
+                  <span className="text-muted text-sm">No email on file</span>
+                )}
+                {current.company_rep1 && <div className="text-muted text-xs mt-1">{current.company_rep1}</div>}
+                {current.company_rep2 && <div className="text-muted text-xs mt-0.5">{current.company_rep2}</div>}
               </div>
             </div>
 
