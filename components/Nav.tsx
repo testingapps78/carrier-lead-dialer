@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Phone, ListChecks, Clock, Settings, LogOut, Users, UserCircle } from "lucide-react";
+import { Phone, ListChecks, Clock, Settings, LogOut, Users, UserCircle, Coffee } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import ThemeToggle from "@/components/ThemeToggle";
 
@@ -24,6 +24,7 @@ export default function Nav({ isAdmin }: { isAdmin: boolean }) {
     { href: "/leads", label: "Leads", icon: ListChecks },
     { href: "/team", label: "Team", icon: Users },
     { href: "/log", label: "Log", icon: Clock },
+    { href: "/attendance", label: "Attendance", icon: Coffee },
     ...(isAdmin ? [{ href: "/admin", label: "Admin", icon: Settings }] : []),
   ];
 
