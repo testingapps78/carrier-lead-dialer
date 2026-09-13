@@ -30,12 +30,14 @@ export async function GET() {
 
   const now = Date.now();
   const members = (profiles ?? [])
-    .map((p) => ({
+    .map((p: { id: string; full_name: string | null; last_seen_at: string | null }) => ({
       id: p.id,
       name: p.full_name || "Teammate",
       online: p.last_seen_at ? now - new Date(p.last_seen_at).getTime() < ONLINE_WINDOW_MS : false,
     }))
-    .sort((a, b) => Number(b.online) - Number(a.online) || a.name.localeCompare(b.name));
+    .sort((a: { online: boolean; name: string }, b: { online: boolean; name: string }) =>
+      Number(b.online) - Number(a.online) || a.name.localeCompare(b.name)
+    );
 
   return NextResponse.json({ members });
 }
