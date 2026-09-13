@@ -1,11 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Phone, MapPin, Truck, Star, Play, Square, Loader2, ChevronLeft, Bell } from "lucide-react";
+import { Phone, PhoneCall, MapPin, Truck, Star, Play, Square, Loader2, ChevronLeft, Bell } from "lucide-react";
 import { Carrier, Shift, formatPhone, getLead, statusClass, formatDuration } from "@/lib/types";
 import { useCallStatuses } from "@/lib/useCallStatuses";
 import CopyButton from "@/components/CopyButton";
 import EnrichmentPanel from "@/components/EnrichmentPanel";
+import AttendanceStrip from "@/components/AttendanceStrip";
 
 type Mode = "dot" | "mc";
 
@@ -67,6 +68,7 @@ function ShiftStrip({ shift, setShift }: { shift: Shift | null; setShift: (s: Sh
   return (
     <div className="flex items-center justify-between bg-surface border border-border rounded-xl px-4 py-3 mb-4">
       <div className="min-w-0">
+        <div className="text-[11px] uppercase tracking-wide text-muted mb-1">Dial session</div>
         {shift ? (
           <>
             <div className="text-sm text-ink font-medium">Checked in · {formatDuration(shift.check_in, null)}</div>
@@ -386,6 +388,7 @@ export default function DialTool() {
   return (
     <div className="max-w-3xl mx-auto px-4 pt-5 pb-28">
       <ShiftStrip shift={shift} setShift={setShift} />
+      <AttendanceStrip />
 
       {/* Filters */}
       <form
@@ -533,6 +536,13 @@ export default function DialTool() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="mile-marker text-lg">{phone}</span>
                     <CopyButton value={current.phone ?? ""} />
+                    <a
+                      href={`tel:${current.phone}`}
+                      className="flex items-center gap-1 text-xs px-2 py-1 rounded border border-accent/40 text-accent hover:bg-accent/10 transition-colors"
+                      title="Dial with your default calling app"
+                    >
+                      <PhoneCall size={12} /> Dial
+                    </a>
                   </div>
                 ) : (
                   <span className="text-muted text-sm">Not on file</span>
@@ -541,6 +551,13 @@ export default function DialTool() {
                   <div className="flex items-center gap-2 mt-1">
                     <span className="mile-marker text-sm text-muted">{cell} (cell)</span>
                     <CopyButton value={current.cell_phone ?? ""} />
+                    <a
+                      href={`tel:${current.cell_phone}`}
+                      className="flex items-center gap-1 text-xs px-2 py-1 rounded border border-accent/40 text-accent hover:bg-accent/10 transition-colors"
+                      title="Dial with your default calling app"
+                    >
+                      <PhoneCall size={12} /> Dial
+                    </a>
                   </div>
                 )}
               </div>
