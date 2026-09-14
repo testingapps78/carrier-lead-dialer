@@ -97,7 +97,7 @@ function LoginForm() {
         </p>
 
         <div className="mt-10 pt-6 border-t border-border/40 flex flex-col items-center gap-2">
-          <img src="/logo-lockup.png" alt="Shah Zaib" className="h-9 w-auto opacity-80" />
+          <img src="/logo-lockup.png" alt="Carrier Dialer" className="h-9 w-auto opacity-80" />
           <p className="text-muted text-xs">
             Developed by Shah Zaib Ali ·{" "}
             <a
