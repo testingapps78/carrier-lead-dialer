@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Phone, PhoneCall, Mail, MapPin, Truck, Star, Play, Square, Loader2, ChevronLeft, Bell } from "lucide-react";
+import { Phone, PhoneCall, Mail, MapPin, Truck, Star, Play, Square, Loader2, ChevronLeft, Bell, User } from "lucide-react";
 import { Carrier, Shift, formatPhone, getLead, statusClass, formatDuration } from "@/lib/types";
 import { useCallStatuses } from "@/lib/useCallStatuses";
 import CopyButton from "@/components/CopyButton";
@@ -527,6 +527,19 @@ export default function DialTool() {
           </h2>
           {current.dba_name && <p className="text-muted text-sm mt-0.5">dba {current.dba_name}</p>}
 
+          {current.company_rep1 && (
+            <div className="flex items-center gap-1.5 mt-2 text-accent">
+              <User size={15} className="shrink-0" />
+              <span className="text-sm font-semibold">{current.company_rep1}</span>
+            </div>
+          )}
+          {current.company_rep2 && (
+            <div className="flex items-center gap-1.5 mt-0.5 text-accent/80">
+              <User size={13} className="shrink-0" />
+              <span className="text-xs font-medium">{current.company_rep2}</span>
+            </div>
+          )}
+
           <div className="grid sm:grid-cols-2 gap-5 mt-6">
             <div className="flex gap-3">
               <Phone size={16} className="text-muted mt-0.5 shrink-0" />
@@ -586,8 +599,6 @@ export default function DialTool() {
                 ) : (
                   <span className="text-muted text-sm">No email on file</span>
                 )}
-                {current.company_rep1 && <div className="text-muted text-xs mt-1">{current.company_rep1}</div>}
-                {current.company_rep2 && <div className="text-muted text-xs mt-0.5">{current.company_rep2}</div>}
               </div>
             </div>
 
