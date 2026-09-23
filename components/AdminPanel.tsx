@@ -283,7 +283,7 @@ function OrgSessions() {
       <h2 className="font-display text-lg font-semibold mb-1 flex items-center gap-2">
         <Monitor size={16} /> Active devices
       </h2>
-      <p className="text-muted text-sm mb-4">Every signed-in device across your team. Sessions time out on their own after 1 hour.</p>
+      <p className="text-muted text-sm mb-4">Every signed-in device across your team. Sessions time out on their own after 1 hour of inactivity.</p>
 
       {loading ? (
         <div className="text-muted text-sm py-3">Loading…</div>

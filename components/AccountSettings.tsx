@@ -124,7 +124,8 @@ export default function AccountSettings() {
           <Monitor size={16} /> Your devices
         </h2>
         <p className="text-muted text-sm mb-4">
-          Signed-in sessions on this account. Sessions expire automatically after 1 hour either way — revoke one here
+          Signed-in sessions on this account. Sessions sign out automatically after 1 hour of no activity — revoke
+          one here
           to end it immediately instead.
         </p>
 

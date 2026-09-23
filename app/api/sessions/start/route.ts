@@ -32,7 +32,7 @@ export async function POST() {
   const cookieStore = await cookies();
   const oneYear = 60 * 60 * 24 * 365;
   cookieStore.set("cd_session_id", sessionId, { httpOnly: true, sameSite: "lax", maxAge: oneYear, path: "/" });
-  cookieStore.set("cd_session_start", new Date().toISOString(), {
+  cookieStore.set("cd_last_activity", new Date().toISOString(), {
     httpOnly: true,
     sameSite: "lax",
     maxAge: oneYear,

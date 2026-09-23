@@ -16,7 +16,7 @@ function LoginForm() {
 
   useEffect(() => {
     if (searchParams.get("expired") === "1") {
-      setError("Your session ended (1 hour limit, or signed out remotely). Please sign in again.");
+      setError("You were signed out after an hour of inactivity (or from another device). Please sign in again.");
     }
   }, [searchParams]);
 
