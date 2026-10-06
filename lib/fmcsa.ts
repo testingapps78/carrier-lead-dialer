@@ -175,17 +175,17 @@ const MAX_RETRIES = 3;
 const REQUEST_TIMEOUT_MS = 8000;
 const RETRY_BUDGET_MS = 15000; // never spend longer than this retrying
 let warnedNoToken = false;
+// If Socrata ever says the configured app token is invalid (403), stop sending it
+// and fall back to anonymous requests instead of failing every lookup.
+let tokenRejected = false;
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function socrataGet(url: string): Promise<Response> {
-  const appToken = process.env.SOCRATA_APP_TOKEN;
-  const headers: Record<string, string> = { Accept: "application/json" };
-  if (appToken) {
-    headers["X-App-Token"] = appToken;
-  } else if (!warnedNoToken) {
+  const appToken = process.env.SOCRATA_APP_TOKEN?.trim();
+  if (!appToken && !warnedNoToken) {
     warnedNoToken = true;
     console.warn(
       "SOCRATA_APP_TOKEN is not set — FMCSA requests are anonymous and will be rate limited (429) often."
@@ -196,6 +196,10 @@ async function socrataGet(url: string): Promise<Response> {
   let lastStatus = 0;
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    const sendToken = !!appToken && !tokenRejected;
+    const headers: Record<string, string> = { Accept: "application/json" };
+    if (sendToken) headers["X-App-Token"] = appToken!;
+
     let res: Response | null = null;
     try {
       res = await fetch(url, { headers, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
@@ -204,6 +208,20 @@ async function socrataGet(url: string): Promise<Response> {
     }
 
     if (res && res.ok) return res;
+
+    if (res && res.status === 403 && sendToken) {
+      const body = await res.clone().text().catch(() => "");
+      if (/app.?token/i.test(body)) {
+        tokenRejected = true;
+        console.error(
+          "SOCRATA_APP_TOKEN was rejected by data.transportation.gov (Invalid app_token). " +
+            "Falling back to anonymous requests — replace the token in Vercel with a valid App Token."
+        );
+        attempt--; // this wasn't a real failed attempt — redo it without the token
+        continue;
+      }
+    }
+
     if (res) {
       lastStatus = res.status;
       // Non-retryable (bad query, not found, etc.) — hand it back to the caller.

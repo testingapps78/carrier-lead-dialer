@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Phone, PhoneCall, Mail, MapPin, Truck, Star, Play, Square, Loader2, ChevronLeft, Bell, User } from "lucide-react";
-import { Carrier, Shift, formatPhone, getLead, statusClass, formatDuration } from "@/lib/types";
+import { Carrier, MotusDetails, Shift, formatPhone, getLead, statusClass, formatDuration } from "@/lib/types";
+import { telHref } from "@/lib/callBrief";
+import CallBrief from "@/components/CallBrief";
 import { useCallStatuses } from "@/lib/useCallStatuses";
 import CopyButton from "@/components/CopyButton";
 import EnrichmentPanel from "@/components/EnrichmentPanel";
@@ -160,6 +162,7 @@ export default function DialTool() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [enriched, setEnriched] = useState<{ dot: number; details: MotusDetails | null } | null>(null);
   const [exhausted, setExhausted] = useState(false);
   const [started, setStarted] = useState(false);
   const [restoring, setRestoring] = useState(true);
@@ -566,37 +569,47 @@ export default function DialTool() {
             </div>
           )}
 
+          <CallBrief
+            carrier={current}
+            details={current.motus_details ?? (enriched?.dot === current.dot_number ? enriched.details : null)}
+            onDetails={(d) => setEnriched({ dot: current.dot_number, details: d })}
+          />
+
           <div className="grid sm:grid-cols-2 gap-5 mt-6">
             <div className="flex gap-3">
               <Phone size={16} className="text-muted mt-0.5 shrink-0" />
               <div>
                 <div className="text-[11px] uppercase tracking-wide text-muted mb-1">Phone</div>
                 {phone ? (
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="mile-marker text-lg">{phone}</span>
-                    <CopyButton value={current.phone ?? ""} />
-                    <a
-                      href={`tel:${current.phone}`}
-                      className="flex items-center gap-1 text-xs px-2 py-1 rounded border border-accent/40 text-accent hover:bg-accent/10 transition-colors"
-                      title="Dial with your default calling app"
-                    >
-                      <PhoneCall size={12} /> Dial
-                    </a>
+                  <div>
+                    <span className="mile-marker text-xl">{phone}</span>
+                    <div className="flex items-center gap-2 mt-2">
+                      <a
+                        href={telHref(current.phone)}
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-accent glow-accent text-oncolor font-semibold rounded-xl px-6 py-3 min-h-[48px] text-base hover:bg-accent/90 transition-colors"
+                        title="Dial with your default calling app"
+                      >
+                        <PhoneCall size={18} /> Dial
+                      </a>
+                      <CopyButton value={current.phone ?? ""} />
+                    </div>
                   </div>
                 ) : (
                   <span className="text-muted text-sm">Not on file</span>
                 )}
                 {cell && (
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="mile-marker text-sm text-muted">{cell} (cell)</span>
-                    <CopyButton value={current.cell_phone ?? ""} />
-                    <a
-                      href={`tel:${current.cell_phone}`}
-                      className="flex items-center gap-1 text-xs px-2 py-1 rounded border border-accent/40 text-accent hover:bg-accent/10 transition-colors"
-                      title="Dial with your default calling app"
-                    >
-                      <PhoneCall size={12} /> Dial
-                    </a>
+                  <div className="mt-4">
+                    <span className="mile-marker text-base text-muted">{cell} (cell)</span>
+                    <div className="flex items-center gap-2 mt-2">
+                      <a
+                        href={telHref(current.cell_phone)}
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 border border-accent text-accent font-semibold rounded-xl px-6 py-2.5 min-h-[44px] hover:bg-accent/10 transition-colors"
+                        title="Dial with your default calling app"
+                      >
+                        <PhoneCall size={16} /> Dial cell
+                      </a>
+                      <CopyButton value={current.cell_phone ?? ""} />
+                    </div>
                   </div>
                 )}
               </div>
@@ -640,7 +653,10 @@ export default function DialTool() {
             </div>
           </div>
 
-          <EnrichmentPanel dotNumber={current.dot_number} initial={current.motus_details} />
+          <EnrichmentPanel
+            dotNumber={current.dot_number}
+            initial={current.motus_details ?? (enriched?.dot === current.dot_number ? enriched.details : undefined)}
+          />
 
           <div className="mt-6 pt-5 border-t border-border">
             <div className="text-[11px] uppercase tracking-wide text-muted mb-2">Call status</div>
