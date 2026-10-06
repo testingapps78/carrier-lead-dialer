@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
-import { fetchFmcsaBatch, ScanMode, CarrierFilters } from "@/lib/fmcsa";
+import { fetchFmcsaBatch, FmcsaRateLimitError, ScanMode, CarrierFilters } from "@/lib/fmcsa";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 30; // leaves room for FMCSA retry/backoff
 
 export async function GET(request: NextRequest) {
   const supabase = await createClient();
@@ -33,7 +34,7 @@ export async function GET(request: NextRequest) {
     // after X" can silently skip over an unfetched range. We still cache
     // everything we fetch below for other purposes (leads joins, the Back
     // history), just never read the cache to answer this question.
-    const batch = await fetchFmcsaBatch(after, mode, filters, 200);
+    const batch = await fetchFmcsaBatch(after, mode, filters, 50);
 
     if (batch.length === 0) {
       return NextResponse.json({
@@ -80,6 +81,17 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ carrier: { ...freshCarrier, leads: ownLead ?? null }, source: "fmcsa" });
   } catch (err: any) {
+    if (err instanceof FmcsaRateLimitError) {
+      console.warn("next-carrier: FMCSA rate limited (429) after retries");
+      return NextResponse.json(
+        {
+          error: "FMCSA is busy right now (too many requests). Wait a few seconds and press Next again.",
+          code: "rate_limited",
+          retryAfterSeconds: err.retryAfterSeconds,
+        },
+        { status: 429 }
+      );
+    }
     console.error("next-carrier error:", err);
     return NextResponse.json(
       { error: err?.message || "Something went wrong looking up the next carrier." },

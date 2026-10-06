@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
-import { fetchFmcsaBatch, ScanMode, CarrierFilters } from "@/lib/fmcsa";
+import { fetchFmcsaBatch, FmcsaRateLimitError, ScanMode, CarrierFilters } from "@/lib/fmcsa";
 import { checkAndConsumeTrial, TRIAL_LIMIT } from "@/lib/trial";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 30; // leaves room for FMCSA retry/backoff
 
 export async function GET(request: NextRequest) {
   const trial = await checkAndConsumeTrial();
@@ -29,7 +30,7 @@ export async function GET(request: NextRequest) {
   const filters: CarrierFilters = { state, minPowerUnits, maxPowerUnits, docketOnly };
 
   try {
-    const batch = await fetchFmcsaBatch(after, mode, filters, 200);
+    const batch = await fetchFmcsaBatch(after, mode, filters, 50);
 
     if (batch.length === 0) {
       return NextResponse.json({
@@ -51,6 +52,16 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ carrier: batch[0], remaining: trial.remaining, limit: TRIAL_LIMIT });
   } catch (err: any) {
+    if (err instanceof FmcsaRateLimitError) {
+      return NextResponse.json(
+        {
+          error: "Our carrier data source is busy right now. Please try again in a few seconds.",
+          code: "rate_limited",
+          retryAfterSeconds: err.retryAfterSeconds,
+        },
+        { status: 429 }
+      );
+    }
     console.error("trial next-carrier error:", err);
     return NextResponse.json({ error: "Something went wrong looking up the next carrier." }, { status: 500 });
   }

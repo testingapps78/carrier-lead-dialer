@@ -159,6 +159,7 @@ export default function DialTool() {
   const [history, setHistory] = useState<Carrier[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [exhausted, setExhausted] = useState(false);
   const [started, setStarted] = useState(false);
   const [restoring, setRestoring] = useState(true);
@@ -277,10 +278,28 @@ export default function DialTool() {
     async (after: number) => {
       setLoading(true);
       setError(null);
+      setNotice(null);
       try {
-        const res = await fetch(`/api/next-carrier?${buildParams(after).toString()}`);
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Lookup failed.");
+        // FMCSA's public API rate-limits (429) now and then. The server already
+        // retries briefly; if it still reports "busy", wait and retry here
+        // automatically instead of making the user hit Next again.
+        const MAX_AUTO_RETRIES = 2;
+        let data: any = null;
+        for (let attempt = 0; ; attempt++) {
+          const res = await fetch(`/api/next-carrier?${buildParams(after).toString()}`);
+          data = await res.json().catch(() => ({}));
+          if (res.ok) break;
+          if (data?.code === "rate_limited" && attempt < MAX_AUTO_RETRIES) {
+            const wait = Math.min(Math.max(Number(data.retryAfterSeconds) || 5, 3), 10);
+            for (let s = wait; s > 0; s--) {
+              setNotice(`FMCSA is busy — retrying in ${s}s… (try ${attempt + 2} of ${MAX_AUTO_RETRIES + 1})`);
+              await new Promise((r) => setTimeout(r, 1000));
+            }
+            setNotice("Retrying…");
+            continue;
+          }
+          throw new Error(data?.error || "Lookup failed.");
+        }
         if (!data.carrier) {
           setExhausted(true);
           setCurrent(null);
@@ -306,6 +325,7 @@ export default function DialTool() {
       } catch (e: any) {
         setError(e?.message || "Something went wrong.");
       } finally {
+        setNotice(null);
         setLoading(false);
       }
     },
@@ -470,6 +490,12 @@ export default function DialTool() {
           {started ? "Restart scan" : "Start scan"}
         </button>
       </form>
+
+      {notice && (
+        <div className="bg-accent/10 border border-accent/40 text-accent text-sm rounded-xl px-4 py-3 mb-5">
+          {notice}
+        </div>
+      )}
 
       {error && (
         <div className="bg-bad/10 border border-bad/40 text-bad text-sm rounded-xl px-4 py-3 mb-5">

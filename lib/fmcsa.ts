@@ -156,12 +156,85 @@ export function buildWhereClause(
   return clauses.join(" AND ");
 }
 
+// ---------------------------------------------------------------------------
+// Socrata request helper — adds the app token, a per-request timeout, and
+// automatic retry with backoff when data.transportation.gov answers with
+// 429 (rate limited) or a transient 5xx. Anonymous requests from Vercel's
+// shared IPs get throttled aggressively, so the app token matters.
+// ---------------------------------------------------------------------------
+export class FmcsaRateLimitError extends Error {
+  retryAfterSeconds: number;
+  constructor(retryAfterSeconds = 5) {
+    super("FMCSA is busy right now (too many requests).");
+    this.name = "FmcsaRateLimitError";
+    this.retryAfterSeconds = retryAfterSeconds;
+  }
+}
+
+const MAX_RETRIES = 3;
+const REQUEST_TIMEOUT_MS = 8000;
+const RETRY_BUDGET_MS = 15000; // never spend longer than this retrying
+let warnedNoToken = false;
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function socrataGet(url: string): Promise<Response> {
+  const appToken = process.env.SOCRATA_APP_TOKEN;
+  const headers: Record<string, string> = { Accept: "application/json" };
+  if (appToken) {
+    headers["X-App-Token"] = appToken;
+  } else if (!warnedNoToken) {
+    warnedNoToken = true;
+    console.warn(
+      "SOCRATA_APP_TOKEN is not set — FMCSA requests are anonymous and will be rate limited (429) often."
+    );
+  }
+
+  const startedAt = Date.now();
+  let lastStatus = 0;
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    let res: Response | null = null;
+    try {
+      res = await fetch(url, { headers, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
+    } catch {
+      // Network error or timeout — treat like a transient failure and retry.
+    }
+
+    if (res && res.ok) return res;
+    if (res) {
+      lastStatus = res.status;
+      // Non-retryable (bad query, not found, etc.) — hand it back to the caller.
+      if (res.status !== 429 && res.status < 500) return res;
+    }
+
+    if (attempt === MAX_RETRIES) break;
+
+    const retryAfterHeader = res ? Number(res.headers.get("retry-after")) : NaN;
+    const backoff = 500 * 2 ** attempt + Math.floor(Math.random() * 250); // ~0.5s, 1s, 2s
+    const delay = Number.isFinite(retryAfterHeader) && retryAfterHeader > 0
+      ? Math.min(retryAfterHeader * 1000, 3000)
+      : backoff;
+    if (Date.now() - startedAt + delay > RETRY_BUDGET_MS) break;
+    await sleep(delay);
+  }
+
+  if (lastStatus === 429) throw new FmcsaRateLimitError(5);
+  throw new Error(
+    lastStatus
+      ? `FMCSA request failed (${lastStatus}) after retries.`
+      : "FMCSA did not respond in time. Try again in a moment."
+  );
+}
+
 // Fetches a batch (ordered ascending) from the live FMCSA dataset.
 export async function fetchFmcsaBatch(
   after: number,
   mode: ScanMode,
   filters: CarrierFilters,
-  limit = 200
+  limit = 50
 ): Promise<NormalizedCarrier[]> {
   const where = buildWhereClause(after, mode, filters);
   const order = mode === "dot" ? "dot_number ASC" : "docket1::number ASC";
@@ -171,11 +244,7 @@ export async function fetchFmcsaBatch(
     $limit: String(limit),
   });
 
-  const appToken = process.env.SOCRATA_APP_TOKEN;
-  const headers: Record<string, string> = {};
-  if (appToken) headers["X-App-Token"] = appToken;
-
-  const res = await fetch(`${SOCRATA_BASE}?${params.toString()}`, { headers });
+  const res = await socrataGet(`${SOCRATA_BASE}?${params.toString()}`);
   if (!res.ok) {
     const text = await res.text().catch(() => "");
     throw new Error(`FMCSA request failed (${res.status}): ${text.slice(0, 300)}`);
@@ -204,11 +273,12 @@ export async function fetchAuthorityInsurance(dotNumber: number): Promise<Author
     $where: `dot_number::number = ${dotNumber}`,
     $limit: "1",
   });
-  const appToken = process.env.SOCRATA_APP_TOKEN;
-  const headers: Record<string, string> = {};
-  if (appToken) headers["X-App-Token"] = appToken;
-
-  const res = await fetch(`${AUTHORITY_BASE}?${params.toString()}`, { headers });
+  let res: Response;
+  try {
+    res = await socrataGet(`${AUTHORITY_BASE}?${params.toString()}`);
+  } catch {
+    return null; // best-effort panel — never block the card if FMCSA is busy
+  }
   if (!res.ok) return null;
   const rows: any[] = await res.json();
   if (rows.length === 0) return null;
