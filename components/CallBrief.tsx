@@ -1,49 +1,45 @@
 "use client";
 
-import { useState } from "react";
-import { Loader2, Clock, ShieldCheck, Route, Package } from "lucide-react";
+import { Loader2, Clock, ShieldCheck, Route, User, Package, Truck } from "lucide-react";
 import type { Carrier, MotusDetails } from "@/lib/types";
 import CopyButton from "@/components/CopyButton";
 import { buildOpener, monthYear, operationLabel, registeredSince, safetyLabel, statusLabel } from "@/lib/callBrief";
 
+function Label({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted mb-0.5">
+      {icon} {children}
+    </div>
+  );
+}
+
 export default function CallBrief({
   carrier,
   details,
-  onDetails,
+  loading,
+  error,
+  onLoadDetails,
 }: {
   carrier: Carrier;
-  details?: MotusDetails | null; // cargo/officials details, if already loaded or cached
-  onDetails: (d: MotusDetails | null) => void;
+  details?: MotusDetails | null; // owner/truck/cargo details, if already loaded or cached
+  loading: boolean;
+  error: string | null;
+  onLoadDetails: () => void;
 }) {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
   const opener = buildOpener(carrier);
   const reg = registeredSince(carrier.add_date);
   const status = statusLabel(carrier.status_code);
   const safety = safetyLabel(carrier.safety_rating);
   const operation = operationLabel(carrier);
   const mcs150 = monthYear(carrier.mcs150_date);
+
+  const reps = [carrier.company_rep1, carrier.company_rep2].filter(Boolean) as string[];
+  const officials = details?.officials ?? [];
+  const vehicles = (details?.vehicles ?? []).filter((v) => (v.owned && v.owned !== "0") || v.leased);
   const cargo = details?.cargoClasses?.length ? details.cargoClasses.join(", ") : null;
+  const hasDetails = !!details && (officials.length > 0 || vehicles.length > 0 || !!cargo);
 
-  async function loadCargo() {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/carriers/${carrier.dot_number}/enrich`);
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.error || "Couldn't load cargo details.");
-      onDetails(data.details ?? null);
-      if (!data.details?.cargoClasses?.length) setError("No cargo details on file for this carrier.");
-    } catch (e: any) {
-      setError(e?.message || "Couldn't load cargo details.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  const toneClass =
-    safety.tone === "good" ? "text-emerald-400" : safety.tone === "bad" ? "text-bad" : "text-ink";
+  const toneClass = safety.tone === "good" ? "text-emerald-400" : safety.tone === "bad" ? "text-bad" : "text-ink";
 
   return (
     <div className="mt-5 bg-surface2 border border-accent/30 rounded-xl p-4">
@@ -56,9 +52,7 @@ export default function CallBrief({
 
       <div className="grid grid-cols-2 gap-x-4 gap-y-3 mt-4 text-sm">
         <div>
-          <div className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted mb-0.5">
-            <Clock size={11} /> Registered
-          </div>
+          <Label icon={<Clock size={11} />}>Registered</Label>
           {reg ? (
             <>
               <div className="font-medium">{reg.age}</div>
@@ -71,44 +65,82 @@ export default function CallBrief({
         </div>
 
         <div>
-          <div className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted mb-0.5">
-            <ShieldCheck size={11} /> Status &amp; safety
-          </div>
+          <Label icon={<ShieldCheck size={11} />}>Status &amp; safety</Label>
           <div className={`font-medium ${status.ok === false ? "text-bad" : ""}`}>{status.label}</div>
           <div className={`text-xs ${toneClass}`}>Safety: {safety.label}</div>
         </div>
 
         <div>
-          <div className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted mb-0.5">
-            <Route size={11} /> Operation
-          </div>
+          <Label icon={<Route size={11} />}>Operation</Label>
           <div>{operation || <span className="text-muted">Unknown</span>}</div>
         </div>
 
         <div>
-          <div className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted mb-0.5">
-            <Package size={11} /> Cargo carried
-          </div>
-          {cargo ? (
-            <div>{cargo}</div>
+          <Label icon={<User size={11} />}>Contact on file</Label>
+          {reps.length > 0 ? (
+            reps.map((r, i) => <div key={i}>{r}</div>)
           ) : (
+            <span className="text-muted text-xs">No contact name in FMCSA census</span>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-4 pt-3 border-t border-border/60">
+        {hasDetails ? (
+          <div className="space-y-3 text-sm">
+            <div>
+              <Label icon={<User size={11} />}>Owner / officials</Label>
+              {officials.length > 0 ? (
+                <div className="space-y-0.5">
+                  {officials.map((o, i) => (
+                    <div key={i}>
+                      <span className="font-medium">{o.name}</span>
+                      {o.title && <span className="text-muted"> · {o.title}</span>}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <span className="text-muted text-xs">None listed</span>
+              )}
+            </div>
+            <div>
+              <Label icon={<Truck size={11} />}>Trucks</Label>
+              {vehicles.length > 0 ? (
+                <div className="space-y-0.5">
+                  {vehicles.map((v, i) => (
+                    <div key={i}>
+                      {v.type}: {v.owned || "0"} owned{v.leased ? `, ${v.leased} leased` : ""}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <span className="text-muted text-xs">No truck breakdown listed</span>
+              )}
+            </div>
+            <div>
+              <Label icon={<Package size={11} />}>Cargo carried</Label>
+              {cargo ? <div>{cargo}</div> : <span className="text-muted text-xs">None listed</span>}
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"
-              onClick={loadCargo}
+              onClick={onLoadDetails}
               disabled={loading}
-              className="text-xs px-2 py-1 rounded border border-border text-muted hover:text-ink hover:border-accent transition-colors disabled:opacity-60"
+              className="text-sm px-3 py-2 rounded-lg border border-accent/50 text-accent hover:bg-accent/10 transition-colors disabled:opacity-60 min-h-[40px]"
             >
               {loading ? (
-                <span className="flex items-center gap-1">
-                  <Loader2 size={11} className="animate-spin" /> Loading (up to 15s)…
+                <span className="flex items-center gap-1.5">
+                  <Loader2 size={13} className="animate-spin" /> Loading (up to 15s)…
                 </span>
               ) : (
-                "Load cargo"
+                "Load owner, trucks & cargo"
               )}
             </button>
-          )}
-          {error && <div className="text-xs text-muted mt-1">{error}</div>}
-        </div>
+            {error && <span className="text-xs text-muted">{error}</span>}
+          </div>
+        )}
       </div>
     </div>
   );

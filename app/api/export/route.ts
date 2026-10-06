@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
   if (!user) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
 
   const params = request.nextUrl.searchParams;
-  const kind = params.get("kind") || "leads"; // "leads" | "shifts"
+  const kind = params.get("kind") || "leads"; // "leads" | "shifts" | "saved"
   const from = params.get("from"); // ISO date
   const to = params.get("to"); // ISO date
   const requestedUserId = params.get("user_id");
@@ -72,6 +72,57 @@ export async function GET(request: NextRequest) {
       headers: {
         "Content-Type": "text/csv",
         "Content-Disposition": `attachment; filename="shifts-${targetUserId.slice(0, 8)}.csv"`,
+      },
+    });
+  }
+
+  if (kind === "saved") {
+    const { data, error } = await admin
+      .from("leads")
+      .select("*, carriers(*)")
+      .eq("user_id", targetUserId)
+      .eq("saved", true)
+      .order("saved_at", { ascending: false });
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+    const rows = (data ?? []).map((l: any) => {
+      const c = l.carriers ?? {};
+      const m = c.motus_details ?? {};
+      const officials: any[] = Array.isArray(m.officials) ? m.officials : [];
+      const owners = [
+        ...officials.map((o) => [o.name, o.title].filter(Boolean).join(" - ")),
+        ...[c.company_rep1, c.company_rep2].filter(Boolean),
+      ];
+      const emails = [c.email, m.businessEmail, ...officials.map((o) => o.email)].filter(Boolean);
+      const trucks = (Array.isArray(m.vehicles) ? m.vehicles : [])
+        .map((v: any) => `${v.type}: ${v.owned || 0} owned${v.leased ? `, ${v.leased} leased` : ""}`)
+        .join("; ");
+      return {
+        mc_number: c.docket_number ? `${c.docket_prefix || "MC"}-${c.docket_number}` : "",
+        dot_number: l.dot_number,
+        legal_name: c.legal_name ?? "",
+        dba_name: c.dba_name ?? "",
+        owner_names: Array.from(new Set(owners)).join(" | "),
+        phone: c.phone ?? "",
+        cell_phone: c.cell_phone ?? "",
+        email: Array.from(new Set(emails)).join(" | "),
+        truck_types: trucks,
+        power_units: c.power_units ?? "",
+        cargo: Array.isArray(m.cargoClasses) ? m.cargoClasses.join("; ") : "",
+        city: c.phy_city ?? "",
+        state: c.phy_state ?? "",
+        registered_since: c.add_date ?? "",
+        status: l.status,
+        notes: l.notes ?? "",
+        saved_at: l.saved_at ?? "",
+      };
+    });
+
+    // BOM so Excel opens the UTF-8 file with correct characters.
+    return new NextResponse("\uFEFF" + toCsv(rows), {
+      headers: {
+        "Content-Type": "text/csv; charset=utf-8",
+        "Content-Disposition": `attachment; filename="saved-mcs-${new Date().toISOString().slice(0, 10)}.csv"`,
       },
     });
   }

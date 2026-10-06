@@ -7,6 +7,8 @@ export interface Lead {
   reminder_date?: string | null;
   reminder_note?: string | null;
   reminder_done?: boolean;
+  saved?: boolean;
+  saved_at?: string | null;
 }
 
 export interface MotusOfficial {

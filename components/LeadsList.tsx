@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Star, Trash2, ChevronDown, Search, X, Bell, Check } from "lucide-react";
+import { Star, Bookmark, Download, Trash2, ChevronDown, Search, X, Bell, Check } from "lucide-react";
 import { formatPhone, statusClass, isReminderDue, todayIso } from "@/lib/types";
 import { useCallStatuses } from "@/lib/useCallStatuses";
 import CopyButton from "@/components/CopyButton";
@@ -10,6 +10,7 @@ interface LeadRow {
   dot_number: number;
   status: string;
   priority: boolean;
+  saved?: boolean;
   notes: string | null;
   last_called_at: string | null;
   updated_at: string;
@@ -35,6 +36,7 @@ export default function LeadsList() {
   const [leads, setLeads] = useState<LeadRow[]>([]);
   const [statusFilter, setStatusFilter] = useState("");
   const [priorityOnly, setPriorityOnly] = useState(false);
+  const [savedOnly, setSavedOnly] = useState(false);
   const [sort, setSort] = useState<SortKey>("recent");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -82,6 +84,7 @@ export default function LeadsList() {
 
   const visibleLeads = useMemo(() => {
     let list = priorityOnly ? leads.filter((l) => l.priority) : leads;
+    if (savedOnly) list = list.filter((l) => l.saved);
     const sorted = [...list];
     switch (sort) {
       case "oldest":
@@ -100,11 +103,20 @@ export default function LeadsList() {
         sorted.sort((a, b) => b.updated_at.localeCompare(a.updated_at));
     }
     return sorted;
-  }, [leads, priorityOnly, sort]);
+  }, [leads, priorityOnly, savedOnly, sort]);
 
   return (
     <div className="max-w-4xl mx-auto px-4 pt-5 pb-28">
-      <h1 className="font-display text-2xl font-semibold tracking-tight mb-4">Worked leads</h1>
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <h1 className="font-display text-2xl font-semibold tracking-tight">Worked leads</h1>
+        <a
+          href="/api/export?kind=saved"
+          className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg border border-accent/50 text-accent hover:bg-accent/10 transition-colors"
+          title="Download all saved MCs as a spreadsheet (CSV)"
+        >
+          <Download size={14} /> Export saved
+        </a>
+      </div>
 
       {dueReminders.length > 0 && (
         <div className="bg-accent/10 border border-accent/30 rounded-xl p-4 mb-4">
@@ -178,6 +190,14 @@ export default function LeadsList() {
         >
           <Star size={13} fill={priorityOnly ? "currentColor" : "none"} /> Important
         </button>
+        <button
+          onClick={() => setSavedOnly((p) => !p)}
+          className={`flex items-center gap-1.5 text-sm px-3 py-2.5 rounded-lg border transition-colors ${
+            savedOnly ? "bg-accent/20 text-accent border-accent" : "text-muted border-border"
+          }`}
+        >
+          <Bookmark size={13} fill={savedOnly ? "currentColor" : "none"} /> Saved
+        </button>
       </div>
 
       {loading && <div className="text-muted text-center py-12">Loading…</div>}
@@ -199,6 +219,7 @@ export default function LeadsList() {
                 className="w-full px-4 py-3 flex items-center gap-3 text-left"
               >
                 {lead.priority && <Star size={14} className="text-accent shrink-0" fill="currentColor" />}
+                {lead.saved && <Bookmark size={14} className="text-accent shrink-0" fill="currentColor" />}
                 <div className="flex-1 min-w-0">
                   <div className="font-medium truncate">{name}</div>
                   <div className="text-muted text-xs mt-0.5 truncate">

@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
 
   const { data: leads } = await supabase
     .from("leads")
-    .select("dot_number, status, priority, notes, last_called_at")
+    .select("dot_number, status, priority, notes, last_called_at, saved")
     .eq("user_id", user.id)
     .in("dot_number", dots);
 

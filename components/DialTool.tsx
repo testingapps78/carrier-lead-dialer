@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Phone, PhoneCall, Mail, MapPin, Truck, Star, Play, Square, Loader2, ChevronLeft, Bell, User } from "lucide-react";
+import { Phone, PhoneCall, Mail, MapPin, Truck, Star, Bookmark, Play, Square, Loader2, ChevronLeft, Bell, User } from "lucide-react";
 import { Carrier, MotusDetails, Shift, formatPhone, getLead, statusClass, formatDuration } from "@/lib/types";
 import { telHref } from "@/lib/callBrief";
 import CallBrief from "@/components/CallBrief";
@@ -163,6 +163,7 @@ export default function DialTool() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [enriched, setEnriched] = useState<{ dot: number; details: MotusDetails | null } | null>(null);
+  const [detailsState, setDetailsState] = useState<{ dot: number; loading: boolean; error: string | null }>({ dot: 0, loading: false, error: null });
   const [exhausted, setExhausted] = useState(false);
   const [started, setStarted] = useState(false);
   const [restoring, setRestoring] = useState(true);
@@ -370,7 +371,7 @@ export default function DialTool() {
     );
   }
 
-  async function updateLead(patch: { status?: string; priority?: boolean; notes?: string; reminder_date?: string; reminder_note?: string }) {
+  async function updateLead(patch: { status?: string; priority?: boolean; saved?: boolean; notes?: string; reminder_date?: string; reminder_note?: string }) {
     if (!current) return;
     setSavingLead(true);
     try {
@@ -386,6 +387,33 @@ export default function DialTool() {
       console.error(e);
     } finally {
       setSavingLead(false);
+    }
+  }
+
+  // Owner names, truck types and cargo come from FMCSA's newer registration records.
+  // It is a slower lookup (up to ~15s), so it only runs on request (or when saving).
+  async function loadDetails(dot: number) {
+    setDetailsState({ dot, loading: true, error: null });
+    try {
+      const res = await fetch(`/api/carriers/${dot}/enrich`);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || "Couldn't load details. Try again.");
+      setEnriched({ dot, details: data.details ?? null });
+      setDetailsState({ dot, loading: false, error: data.details ? null : "No extra public record found for this carrier." });
+    } catch (e: any) {
+      setDetailsState({ dot, loading: false, error: e?.message || "Couldn't load details. Try again." });
+    }
+  }
+
+  async function toggleSaved() {
+    if (!current) return;
+    const next = !getLead(current)?.saved;
+    await updateLead({ saved: next });
+    // When saving, also fetch owner/truck details in the background so the
+    // exported spreadsheet has them (they are cached on the carrier).
+    const haveDetails = !!current.motus_details || (enriched?.dot === current.dot_number && !!enriched.details);
+    if (next && !haveDetails && !(detailsState.dot === current.dot_number && detailsState.loading)) {
+      loadDetails(current.dot_number);
     }
   }
 
@@ -572,7 +600,9 @@ export default function DialTool() {
           <CallBrief
             carrier={current}
             details={current.motus_details ?? (enriched?.dot === current.dot_number ? enriched.details : null)}
-            onDetails={(d) => setEnriched({ dot: current.dot_number, details: d })}
+            loading={detailsState.dot === current.dot_number && detailsState.loading}
+            error={detailsState.dot === current.dot_number ? detailsState.error : null}
+            onLoadDetails={() => loadDetails(current.dot_number)}
           />
 
           <div className="grid sm:grid-cols-2 gap-5 mt-6">
@@ -682,6 +712,19 @@ export default function DialTool() {
               >
                 <Star size={12} fill={lead?.priority ? "currentColor" : "none"} />
                 Important
+              </button>
+              <button
+                onClick={toggleSaved}
+                disabled={savingLead}
+                className={`flex items-center gap-1 text-xs px-3 py-1.5 rounded-full border transition-colors disabled:opacity-60 ${
+                  lead?.saved
+                    ? "bg-accent/20 text-accent border-accent"
+                    : "text-muted border-border hover:text-ink"
+                }`}
+                title="Save this MC to export later"
+              >
+                <Bookmark size={12} fill={lead?.saved ? "currentColor" : "none"} />
+                {lead?.saved ? "Saved" : "Save MC"}
               </button>
             </div>
 

@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
 
     const { data: ownLead } = await supabase
       .from("leads")
-      .select("status, priority, notes, last_called_at")
+      .select("status, priority, notes, last_called_at, saved")
       .eq("dot_number", firstDot)
       .eq("user_id", user.id)
       .maybeSingle();

@@ -40,6 +40,10 @@ export async function POST(request: NextRequest) {
     if (body.status !== "new") update.last_called_at = new Date().toISOString();
   }
   if (body.priority !== undefined) update.priority = !!body.priority;
+  if (body.saved !== undefined) {
+    update.saved = !!body.saved;
+    update.saved_at = body.saved ? new Date().toISOString() : null;
+  }
   if (body.notes !== undefined) update.notes = String(body.notes).slice(0, 5000);
   if (body.reminder_date !== undefined) update.reminder_date = body.reminder_date;
   if (body.reminder_note !== undefined) update.reminder_note = String(body.reminder_note ?? "").slice(0, 1000);
@@ -102,6 +106,7 @@ export async function GET(request: NextRequest) {
     .limit(500);
 
   if (status) query = query.eq("status", status);
+  if (request.nextUrl.searchParams.get("saved") === "1") query = query.eq("saved", true);
 
   const { data, error } = await query;
   if (error) {
