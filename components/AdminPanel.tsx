@@ -309,6 +309,76 @@ function OrgSessions() {
   );
 }
 
+function SessionSettings() {
+  const [minutes, setMinutes] = useState<number | null>(null);
+  const [options, setOptions] = useState<{ minutes: number; label: string }[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/admin/session-settings")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.error) setError(d.error);
+        else {
+          setMinutes(d.idleTimeoutMinutes);
+          setOptions(d.options ?? []);
+        }
+      })
+      .catch(() => setError("Couldn't load this setting."));
+  }, []);
+
+  async function change(value: number) {
+    const previous = minutes;
+    setMinutes(value);
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/session-settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idleTimeoutMinutes: value }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || "Couldn't save.");
+      setSavedAt(Date.now());
+    } catch (e: any) {
+      setMinutes(previous);
+      setError(e?.message || "Couldn't save.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="mt-8">
+      <h2 className="font-display text-lg font-semibold mb-1">Auto sign-out</h2>
+      <p className="text-sm text-muted mb-3">
+        Signs someone out of a device after this long with no tapping, typing or scrolling. Applies to everyone on your team.
+      </p>
+      <div className="flex items-center gap-3">
+        <select
+          value={minutes ?? ""}
+          disabled={minutes === null || saving}
+          onChange={(e) => change(Number(e.target.value))}
+          className="bg-surface2 border border-border rounded-lg px-3 py-2 text-sm disabled:opacity-60"
+        >
+          {minutes === null && <option value="">Loading…</option>}
+          {options.map((o) => (
+            <option key={o.minutes} value={o.minutes}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+        {saving && <span className="text-xs text-muted">Saving…</span>}
+        {!saving && savedAt && !error && <span className="text-xs text-muted">Saved</span>}
+        {error && <span className="text-xs text-bad">{error}</span>}
+      </div>
+    </div>
+  );
+}
+
 export default function AdminPanel({ currentUserId, isSuperAdmin }: { currentUserId: string; isSuperAdmin?: boolean }) {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -404,6 +474,7 @@ export default function AdminPanel({ currentUserId, isSuperAdmin }: { currentUse
 
       <StatusManager />
       <TeamActivity />
+      <SessionSettings />
       <OrgSessions />
 
       <div className="flex items-center justify-between mb-4">

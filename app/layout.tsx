@@ -11,6 +11,7 @@ import "@fontsource/ibm-plex-mono/500.css";
 import "@fontsource/ibm-plex-mono/600.css";
 import "./globals.css";
 import { ThemeInitScript } from "@/components/ThemeToggle";
+import ActivityTracker from "@/components/ActivityTracker";
 
 export const metadata: Metadata = {
   title: "Carrier Dialer",
@@ -28,6 +29,7 @@ export default function RootLayout({
         <ThemeInitScript />
       </head>
       <body className="font-body bg-canvas text-ink min-h-screen antialiased">
+        <ActivityTracker />
         {children}
       </body>
     </html>
