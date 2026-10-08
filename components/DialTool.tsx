@@ -5,6 +5,7 @@ import { Phone, PhoneCall, Mail, MapPin, Truck, Star, Bookmark, Play, Square, Lo
 import { Carrier, MotusDetails, Shift, formatPhone, getLead, statusClass, formatDuration } from "@/lib/types";
 import { telHref } from "@/lib/callBrief";
 import CallBrief from "@/components/CallBrief";
+import AIPanel from "@/components/AIPanel";
 import { useCallStatuses } from "@/lib/useCallStatuses";
 import CopyButton from "@/components/CopyButton";
 import EnrichmentPanel from "@/components/EnrichmentPanel";
@@ -686,6 +687,14 @@ export default function DialTool() {
           <EnrichmentPanel
             dotNumber={current.dot_number}
             initial={current.motus_details ?? (enriched?.dot === current.dot_number ? enriched.details : undefined)}
+          />
+
+          <AIPanel
+            carrier={current}
+            notes={notesDraft}
+            statuses={statuses}
+            onApplyNotes={handleNotesChange}
+            onApplyStatus={handleStatusClick}
           />
 
           <div className="mt-6 pt-5 border-t border-border">

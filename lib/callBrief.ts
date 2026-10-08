@@ -17,7 +17,7 @@ const TITLE_WORDS = new Set([
 const KEEP_UPPER = new Set(["LLC", "INC", "LP", "LLP", "PLLC", "LTD", "USA", "DBA", "II", "III"]);
 const KEEP_LOWER = new Set(["for", "of", "and", "the"]);
 
-function titleCase(s: string): string {
+export function titleCase(s: string): string {
   return s
     .toLowerCase()
     .split(/(\s+)/)
@@ -120,27 +120,36 @@ export function telHref(raw: string | null | undefined): string {
   return `tel:${digits || raw || ""}`;
 }
 
+export function wordCount(text: string): number {
+  return text.trim().split(/\s+/).filter(Boolean).length;
+}
+
+/** Rough spoken length: about 2.5 words per second. */
+export function spokenSeconds(text: string): number {
+  return Math.max(1, Math.round(wordCount(text) / 2.5));
+}
+
 /**
- * Facts-only opener: leads with specifics, no permission-seeking ("do you have a minute?"),
- * and ends cleanly so the caller continues with their own pitch.
+ * Facts-only opener kept under ~6 seconds spoken (about 15 words): leads with
+ * specifics, no permission-seeking, and stops so the carrier can answer.
  */
 export function buildOpener(c: Carrier, now = new Date()): string {
+  void now;
   const first = guessFirstName(c);
   const person = looksLikePerson(c.legal_name);
-  const place = [c.phy_city ? titleCase(c.phy_city) : null, c.phy_state].filter(Boolean).join(", ");
+  const city = c.phy_city ? titleCase(c.phy_city) : null;
+  const place = [city, c.phy_state].filter(Boolean).join(", ");
   const trucks = c.power_units && c.power_units > 0 ? c.power_units : null;
-  const reg = registeredSince(c.add_date, now);
-  const company = c.dba_name ? titleCase(c.dba_name) : c.legal_name ? titleCase(c.legal_name) : "your company";
+  const company = c.dba_name ? titleCase(c.dba_name) : c.legal_name ? titleCase(c.legal_name) : null;
 
   const greeting = first ? `Hi ${first},` : "Hi,";
-  const subject = person ? "you've been running" : `${company} has been running`;
-  const fleet = trucks ? `${trucks} truck${trucks > 1 ? "s" : ""}` : "your trucks";
-  const where = place ? ` out of ${place}` : "";
-  const since = reg ? `, registered since ${reg.year}` : "";
+  const fleet = trucks ? `${trucks} truck${trucks > 1 ? "s" : ""}` : null;
 
-  const sentence =
-    trucks || place
-      ? `${greeting} I see ${subject} ${fleet}${where}${since}.`
-      : `${greeting} I see ${person ? "you're" : `${company} is`} an active carrier${since}.`;
-  return `${sentence} I handle dispatch for carriers your size.`;
+  if (person) {
+    const what = fleet ? `your ${fleet}` : "your trucks";
+    return `${greeting} calling about ${what}${place ? ` out of ${place}` : ""}.`;
+  }
+  const who = company ?? "your company";
+  const bits = [fleet, place ? `in ${place}` : null].filter(Boolean).join(" ");
+  return `${greeting} calling about ${who}${bits ? `, ${bits}` : ""}.`;
 }
