@@ -1,15 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Phone, PhoneCall, Mail, MapPin, Truck, Star, Bookmark, Play, Square, Loader2, ChevronLeft, Bell, User } from "lucide-react";
-import { Carrier, MotusDetails, Shift, formatPhone, getLead, statusClass, formatDuration } from "@/lib/types";
+import { Phone, PhoneCall, Mail, MapPin, Truck, Star, Bookmark, Loader2, ChevronLeft, Bell, User } from "lucide-react";
+import { Carrier, MotusDetails, Shift, formatPhone, getLead, statusClass } from "@/lib/types";
 import { telHref } from "@/lib/callBrief";
-import CallBrief from "@/components/CallBrief";
+import { OpenerLine, BriefFacts, OwnerTrucksCargo, FactLabel } from "@/components/CallBrief";
+import ViewMore from "@/components/ViewMore";
 import AIPanel from "@/components/AIPanel";
 import { useCallStatuses } from "@/lib/useCallStatuses";
 import CopyButton from "@/components/CopyButton";
 import EnrichmentPanel from "@/components/EnrichmentPanel";
-import AttendanceStrip from "@/components/AttendanceStrip";
+import SessionBar from "@/components/SessionBar";
 
 type Mode = "dot" | "mc";
 
@@ -36,74 +37,6 @@ function useOpenShift() {
 
   return { shift, setShift, loading, reload: load };
 }
-
-function ShiftStrip({ shift, setShift }: { shift: Shift | null; setShift: (s: Shift | null) => void }) {
-  const [busy, setBusy] = useState(false);
-  const [, forceTick] = useState(0);
-
-  useEffect(() => {
-    const id = setInterval(() => forceTick((n) => n + 1), 30000);
-    return () => clearInterval(id);
-  }, []);
-
-  async function toggle() {
-    setBusy(true);
-    try {
-      if (shift) {
-        const res = await fetch("/api/shifts", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "checkout" }),
-        });
-        if (res.ok) setShift(null);
-      } else {
-        const res = await fetch("/api/shifts", { method: "POST" });
-        const data = await res.json();
-        if (res.ok) setShift(data.shift);
-      }
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  const covered = shift?.start_number && shift?.end_number ? Math.abs(shift.end_number - shift.start_number) + 1 : null;
-
-  return (
-    <div className="flex items-center justify-between bg-surface border border-border rounded-xl px-4 py-3 mb-4">
-      <div className="min-w-0">
-        <div className="text-[11px] uppercase tracking-wide text-muted mb-1">Dial session</div>
-        {shift ? (
-          <>
-            <div className="text-sm text-ink font-medium">Checked in · {formatDuration(shift.check_in, null)}</div>
-            <div className="text-xs text-muted mt-0.5">
-              {covered !== null && (
-                <>
-                  {shift.mode?.toUpperCase()} {shift.start_number}–{shift.end_number} ({covered} covered) ·{" "}
-                </>
-              )}
-              {shift.carriers_viewed} matched
-            </div>
-          </>
-        ) : (
-          <div className="text-sm text-muted">
-            Not checked in — your place is still saved either way, but shift reports need a check-in.
-          </div>
-        )}
-      </div>
-      <button
-        onClick={toggle}
-        disabled={busy}
-        className={`flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg shrink-0 transition-colors disabled:opacity-50 ${
-          shift ? "bg-bad/15 text-bad border border-bad/30" : "bg-good/15 text-good border border-good/30"
-        }`}
-      >
-        {shift ? <Square size={13} /> : <Play size={13} />}
-        {shift ? "Check out" : "Check in"}
-      </button>
-    </div>
-  );
-}
-
 
 function CallbackPrompt({
   onSave,
@@ -148,7 +81,7 @@ function CallbackPrompt({
 
 export default function DialTool() {
   const { statuses } = useCallStatuses();
-  const { shift, setShift } = useOpenShift();
+  const { shift, setShift, loading: shiftLoading } = useOpenShift();
   const [mode, setMode] = useState<Mode>("mc");
   const [startInput, setStartInput] = useState("");
   const [state, setState] = useState("");
@@ -437,232 +370,199 @@ export default function DialTool() {
   const phone = formatPhone(current?.phone ?? null);
   const cell = formatPhone(current?.cell_phone ?? null);
 
+  const inputCls = "bg-surface2 border border-border rounded-lg px-2.5 py-1.5 text-sm text-ink focus:border-accent outline-none";
+  const labelCls = "block text-[10px] uppercase tracking-wide text-muted mb-0.5";
+
   return (
-    <div className="max-w-3xl mx-auto px-4 pt-5 pb-28">
-      <ShiftStrip shift={shift} setShift={setShift} />
-      <AttendanceStrip />
-
-      {/* Filters */}
-      <form
-        onSubmit={handleStart}
-        className="bg-surface border border-border rounded-xl p-4 mb-5 flex flex-wrap items-end gap-3"
-      >
-        <div className="flex rounded-lg border border-border overflow-hidden text-sm">
-          <button
-            type="button"
-            onClick={() => setMode("mc")}
-            className={`px-3 py-2.5 font-medium ${mode === "mc" ? "bg-accent text-oncolor" : "text-muted"}`}
-          >
-            Scan by MC
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode("dot")}
-            className={`px-3 py-2.5 font-medium ${mode === "dot" ? "bg-accent text-oncolor" : "text-muted"}`}
-          >
-            Scan by DOT
-          </button>
+    <div className="max-w-[1500px] mx-auto px-4 lg:px-6 pt-3 pb-20">
+      <div className="flex flex-col xl:flex-row gap-3 mb-3 xl:items-stretch">
+        <div className="xl:w-[400px] xl:shrink-0">
+          <SessionBar shift={shift} setShift={setShift} shiftReady={!shiftLoading} />
         </div>
 
-        <div>
-          <label className="block text-[11px] uppercase tracking-wide text-muted mb-1">
-            Starting {mode === "mc" ? "MC" : "DOT"} #
-          </label>
-          <input
-            value={startInput}
-            onChange={(e) => setStartInput(e.target.value)}
-            placeholder={mode === "mc" ? "e.g. 900000" : "e.g. 2500000"}
-            className="w-36 bg-surface2 border border-border rounded-lg px-3 py-2.5 mile-marker text-ink focus:border-accent outline-none"
-            inputMode="numeric"
-          />
-        </div>
+        {/* Filters */}
+        <form
+          onSubmit={handleStart}
+          className="flex-1 bg-surface border border-border rounded-xl px-3 py-2 flex flex-wrap items-end gap-x-3 gap-y-2"
+        >
+          <div className="flex rounded-lg border border-border overflow-hidden text-xs">
+            <button
+              type="button"
+              onClick={() => setMode("mc")}
+              className={`px-2.5 py-2 font-medium ${mode === "mc" ? "bg-accent text-oncolor" : "text-muted"}`}
+            >
+              MC
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("dot")}
+              className={`px-2.5 py-2 font-medium ${mode === "dot" ? "bg-accent text-oncolor" : "text-muted"}`}
+            >
+              DOT
+            </button>
+          </div>
 
-        <div>
-          <label className="block text-[11px] uppercase tracking-wide text-muted mb-1">State</label>
-          <select
-            value={state}
-            onChange={(e) => setState(e.target.value)}
-            className="bg-surface2 border border-border rounded-lg px-3 py-2.5 text-ink focus:border-accent outline-none"
-          >
-            <option value="">Any</option>
-            {US_STATES.map((s) => (
-              <option key={s} value={s}>{s}</option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-[11px] uppercase tracking-wide text-muted mb-1">Power units</label>
-          <div className="flex items-center gap-1.5">
+          <div>
+            <label className={labelCls}>Starting {mode === "mc" ? "MC" : "DOT"} #</label>
             <input
-              value={minPU}
-              onChange={(e) => setMinPU(e.target.value)}
-              className="w-14 bg-surface2 border border-border rounded-lg px-2 py-2.5 text-ink focus:border-accent outline-none"
-              inputMode="numeric"
-            />
-            <span className="text-muted">–</span>
-            <input
-              value={maxPU}
-              onChange={(e) => setMaxPU(e.target.value)}
-              className="w-14 bg-surface2 border border-border rounded-lg px-2 py-2.5 text-ink focus:border-accent outline-none"
+              value={startInput}
+              onChange={(e) => setStartInput(e.target.value)}
+              placeholder={mode === "mc" ? "e.g. 900000" : "e.g. 2500000"}
+              className={`w-32 mile-marker ${inputCls}`}
               inputMode="numeric"
             />
           </div>
-        </div>
 
-        <label className="flex items-center gap-2 text-sm text-muted pb-2.5">
-          <input type="checkbox" checked={docketOnly} onChange={(e) => setDocketOnly(e.target.checked)} />
-          Has MC authority
-        </label>
+          <div>
+            <label className={labelCls}>State</label>
+            <select value={state} onChange={(e) => setState(e.target.value)} className={inputCls}>
+              <option value="">Any</option>
+              {US_STATES.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+          </div>
 
-        <button
-          type="submit"
-          className="ml-auto bg-accent text-oncolor font-semibold rounded-lg px-4 py-2.5 hover:bg-accent/90 active:scale-[0.98] transition-all"
-        >
-          {started ? "Restart scan" : "Start scan"}
-        </button>
-      </form>
+          <div>
+            <label className={labelCls}>Power units</label>
+            <div className="flex items-center gap-1">
+              <input value={minPU} onChange={(e) => setMinPU(e.target.value)} className={`w-12 ${inputCls}`} inputMode="numeric" />
+              <span className="text-muted">–</span>
+              <input value={maxPU} onChange={(e) => setMaxPU(e.target.value)} className={`w-12 ${inputCls}`} inputMode="numeric" />
+            </div>
+          </div>
+
+          <label className="flex items-center gap-1.5 text-xs text-muted pb-2">
+            <input type="checkbox" checked={docketOnly} onChange={(e) => setDocketOnly(e.target.checked)} />
+            Has MC authority
+          </label>
+
+          <button
+            type="submit"
+            className="ml-auto bg-accent text-oncolor text-sm font-semibold rounded-lg px-4 py-2 hover:bg-accent/90 active:scale-[0.98] transition-all"
+          >
+            {started ? "Restart scan" : "Start scan"}
+          </button>
+        </form>
+      </div>
 
       {notice && (
-        <div className="bg-accent/10 border border-accent/40 text-accent text-sm rounded-xl px-4 py-3 mb-5">
-          {notice}
-        </div>
+        <div className="bg-accent/10 border border-accent/40 text-accent text-sm rounded-xl px-4 py-2 mb-3">{notice}</div>
       )}
 
       {error && (
-        <div className="bg-bad/10 border border-bad/40 text-bad text-sm rounded-xl px-4 py-3 mb-5">
-          {error}
-        </div>
+        <div className="bg-bad/10 border border-bad/40 text-bad text-sm rounded-xl px-4 py-2 mb-3">{error}</div>
       )}
 
       {restoring && (
-        <div className="flex items-center justify-center gap-2 text-muted py-16">
+        <div className="flex items-center justify-center gap-2 text-muted py-12">
           <Loader2 size={16} className="animate-spin" /> Checking for a scan in progress…
         </div>
       )}
 
       {!restoring && !started && !error && (
-        <div className="text-center text-muted py-16 border border-dashed border-border rounded-xl">
-          Set a starting {mode === "mc" ? "MC" : "DOT"} number above and hit{" "}
-          <span className="text-ink">Start scan</span>.
+        <div className="text-center text-muted py-12 border border-dashed border-border rounded-xl">
+          Set a starting {mode === "mc" ? "MC" : "DOT"} number above and hit <span className="text-ink">Start scan</span>.
         </div>
       )}
 
       {!restoring && started && exhausted && (
-        <div className="text-center text-muted py-16 border border-dashed border-border rounded-xl">
+        <div className="text-center text-muted py-12 border border-dashed border-border rounded-xl">
           No more active carriers match these filters from here on. Try raising the range or loosening a filter.
         </div>
       )}
 
       {loading && !current && (
-        <div className="flex items-center justify-center gap-2 text-muted py-16">
+        <div className="flex items-center justify-center gap-2 text-muted py-12">
           <Loader2 size={16} className="animate-spin" />
           Looking up the next active carrier…
         </div>
       )}
 
       {current && !exhausted && (
-        <div key={current.dot_number} className="bg-surface elevated border border-border/60 rounded-2xl p-6 animate-fade-in">
-          <div className="flex flex-wrap items-center gap-2 mb-4">
-            {current.docket_prefix && current.docket_number && (
-              <span className="flex items-center gap-1 mile-marker text-sm border border-accent text-accent px-2.5 py-1 rounded-lg">
-                {current.docket_prefix}-{current.docket_number}
-                <CopyButton value={String(current.docket_number)} label="" />
+        <div key={current.dot_number} className="grid lg:grid-cols-12 gap-3 animate-fade-in">
+          {/* Left: everything you need to know before dialing */}
+          <section className="lg:col-span-7 bg-surface elevated border border-border/60 rounded-2xl p-4">
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              {current.docket_prefix && current.docket_number && (
+                <span className="flex items-center gap-1 mile-marker text-sm border border-accent text-accent px-2 py-0.5 rounded-lg">
+                  {current.docket_prefix}-{current.docket_number}
+                  <CopyButton value={String(current.docket_number)} label="" />
+                </span>
+              )}
+              <span className="flex items-center gap-1 mile-marker text-sm border border-border text-muted px-2 py-0.5 rounded-lg">
+                DOT {current.dot_number}
+                <CopyButton value={String(current.dot_number)} label="" />
               </span>
-            )}
-            <span className="flex items-center gap-1 mile-marker text-sm border border-border text-muted px-2.5 py-1 rounded-lg">
-              DOT {current.dot_number}
-              <CopyButton value={String(current.dot_number)} label="" />
-            </span>
-            {current.hm_ind === "Y" && (
-              <span className="text-xs border border-bad/50 text-bad px-2.5 py-1 rounded-lg uppercase">Hazmat</span>
-            )}
-            {savingLead && <span className="text-xs text-muted ml-auto">Saving…</span>}
-          </div>
-
-          <h2 className="font-display text-2xl font-semibold tracking-tight">
-            {current.legal_name || "Unnamed carrier"}
-          </h2>
-          {current.dba_name && <p className="text-muted text-sm mt-0.5">dba {current.dba_name}</p>}
-
-          {current.company_rep1 && (
-            <div className="flex items-center gap-1.5 mt-2 text-accent">
-              <User size={15} className="shrink-0" />
-              <span className="text-sm font-semibold">{current.company_rep1}</span>
+              {current.hm_ind === "Y" && (
+                <span className="text-xs border border-bad/50 text-bad px-2 py-0.5 rounded-lg uppercase">Hazmat</span>
+              )}
+              {savingLead && <span className="text-xs text-muted ml-auto">Saving…</span>}
             </div>
-          )}
-          {current.company_rep2 && (
-            <div className="flex items-center gap-1.5 mt-0.5 text-accent/80">
-              <User size={13} className="shrink-0" />
-              <span className="text-xs font-medium">{current.company_rep2}</span>
+
+            <h2 className="font-display text-xl font-semibold tracking-tight leading-tight">
+              {current.legal_name || "Unnamed carrier"}
+              {current.dba_name && <span className="text-muted text-sm font-normal"> · dba {current.dba_name}</span>}
+            </h2>
+
+            {(current.company_rep1 || current.company_rep2) && (
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-0.5 mt-1 text-accent">
+                {current.company_rep1 && (
+                  <span className="flex items-center gap-1.5 text-sm font-semibold">
+                    <User size={14} className="shrink-0" /> {current.company_rep1}
+                  </span>
+                )}
+                {current.company_rep2 && (
+                  <span className="flex items-center gap-1.5 text-xs font-medium text-accent/80">
+                    <User size={12} className="shrink-0" /> {current.company_rep2}
+                  </span>
+                )}
+              </div>
+            )}
+
+            <div className="mt-3">
+              <OpenerLine carrier={current} />
             </div>
-          )}
 
-          <CallBrief
-            carrier={current}
-            details={current.motus_details ?? (enriched?.dot === current.dot_number ? enriched.details : null)}
-            loading={detailsState.dot === current.dot_number && detailsState.loading}
-            error={detailsState.dot === current.dot_number ? detailsState.error : null}
-            onLoadDetails={() => loadDetails(current.dot_number)}
-          />
-
-          <div className="grid sm:grid-cols-2 gap-5 mt-6">
-            <div className="flex gap-3">
-              <Phone size={16} className="text-muted mt-0.5 shrink-0" />
+            <div className="grid grid-cols-2 xl:grid-cols-3 gap-x-4 gap-y-3 mt-4">
               <div>
-                <div className="text-[11px] uppercase tracking-wide text-muted mb-1">Phone</div>
+                <FactLabel icon={<Phone size={10} />}>Phone</FactLabel>
                 {phone ? (
-                  <div>
-                    <span className="mile-marker text-xl">{phone}</span>
-                    <div className="flex items-center gap-2 mt-2">
+                  <>
+                    <span className="mile-marker text-lg">{phone}</span>
+                    <div className="flex items-center gap-1.5 mt-1">
                       <a
                         href={telHref(current.phone)}
-                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-accent glow-accent text-oncolor font-semibold rounded-xl px-6 py-3 min-h-[48px] text-base hover:bg-accent/90 transition-colors"
+                        className="flex items-center justify-center gap-1.5 bg-accent text-oncolor font-semibold rounded-lg px-4 py-2 min-h-[40px] text-sm hover:bg-accent/90 transition-colors"
                         title="Dial with your default calling app"
                       >
-                        <PhoneCall size={18} /> Dial
+                        <PhoneCall size={15} /> Dial
                       </a>
                       <CopyButton value={current.phone ?? ""} />
                     </div>
-                  </div>
+                  </>
                 ) : (
                   <span className="text-muted text-sm">Not on file</span>
                 )}
                 {cell && (
-                  <div className="mt-4">
-                    <span className="mile-marker text-base text-muted">{cell} (cell)</span>
-                    <div className="flex items-center gap-2 mt-2">
-                      <a
-                        href={telHref(current.cell_phone)}
-                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 border border-accent text-accent font-semibold rounded-xl px-6 py-2.5 min-h-[44px] hover:bg-accent/10 transition-colors"
-                        title="Dial with your default calling app"
-                      >
-                        <PhoneCall size={16} /> Dial cell
-                      </a>
-                      <CopyButton value={current.cell_phone ?? ""} />
-                    </div>
+                  <div className="flex items-center gap-1.5 mt-2">
+                    <span className="mile-marker text-sm text-muted">{cell}</span>
+                    <a
+                      href={telHref(current.cell_phone)}
+                      className="flex items-center gap-1 text-xs border border-accent text-accent font-medium rounded-lg px-2.5 py-1.5 hover:bg-accent/10 transition-colors"
+                      title="Dial the cell number"
+                    >
+                      <PhoneCall size={12} /> Cell
+                    </a>
+                    <CopyButton value={current.cell_phone ?? ""} />
                   </div>
                 )}
               </div>
-            </div>
 
-            <div className="flex gap-3">
-              <MapPin size={16} className="text-muted mt-0.5 shrink-0" />
               <div>
-                <div className="text-[11px] uppercase tracking-wide text-muted mb-1">Location</div>
-                <div className="text-sm">
-                  {[current.phy_city, current.phy_state, current.phy_zip].filter(Boolean).join(", ") || "—"}
-                </div>
-                <div className="text-muted text-xs mt-0.5">{current.phy_street}</div>
-              </div>
-            </div>
-
-            <div className="flex gap-3">
-              <Mail size={16} className="text-muted mt-0.5 shrink-0" />
-              <div>
-                <div className="text-[11px] uppercase tracking-wide text-muted mb-1">Contact</div>
+                <FactLabel icon={<Mail size={10} />}>Email</FactLabel>
                 {current.email ? (
-                  <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="text-sm break-all">{current.email}</span>
                     <CopyButton value={current.email} />
                   </div>
@@ -670,109 +570,122 @@ export default function DialTool() {
                   <span className="text-muted text-sm">No email on file</span>
                 )}
               </div>
-            </div>
 
-            <div className="flex gap-3">
-              <Truck size={16} className="text-muted mt-0.5 shrink-0" />
               <div>
-                <div className="text-[11px] uppercase tracking-wide text-muted mb-1">Fleet</div>
+                <FactLabel icon={<MapPin size={10} />}>Location</FactLabel>
+                <div className="text-sm">
+                  {[current.phy_city, current.phy_state, current.phy_zip].filter(Boolean).join(", ") || "—"}
+                </div>
+                <div className="text-muted text-xs">{current.phy_street}</div>
+              </div>
+
+              <div>
+                <FactLabel icon={<Truck size={10} />}>Fleet</FactLabel>
                 <div className="text-sm">
                   {current.power_units ?? "?"} power units · {current.total_drivers ?? "?"} drivers
                 </div>
-                <div className="text-muted text-xs mt-0.5">{current.classdef || "—"}</div>
               </div>
+
+              <BriefFacts carrier={current} />
             </div>
-          </div>
 
-          <EnrichmentPanel
-            dotNumber={current.dot_number}
-            initial={current.motus_details ?? (enriched?.dot === current.dot_number ? enriched.details : undefined)}
-          />
+            <ViewMore>
+              <OwnerTrucksCargo
+                details={current.motus_details ?? (enriched?.dot === current.dot_number ? enriched.details : null)}
+                loading={detailsState.dot === current.dot_number && detailsState.loading}
+                error={detailsState.dot === current.dot_number ? detailsState.error : null}
+                onLoadDetails={() => loadDetails(current.dot_number)}
+              />
+              <EnrichmentPanel
+                dotNumber={current.dot_number}
+                initial={current.motus_details ?? (enriched?.dot === current.dot_number ? enriched.details : undefined)}
+              />
+            </ViewMore>
+          </section>
 
-          <AIPanel
-            carrier={current}
-            notes={notesDraft}
-            statuses={statuses}
-            onApplyNotes={handleNotesChange}
-            onApplyStatus={handleStatusClick}
-          />
+          {/* Right: AI, outcome, notes, next */}
+          <aside className="lg:col-span-5 flex flex-col gap-3">
+            <AIPanel
+              carrier={current}
+              notes={notesDraft}
+              statuses={statuses}
+              onApplyNotes={handleNotesChange}
+              onApplyStatus={handleStatusClick}
+            />
 
-          <div className="mt-6 pt-5 border-t border-border">
-            <div className="text-[11px] uppercase tracking-wide text-muted mb-2">Call status</div>
-            <div className="flex flex-wrap gap-2">
-              {statuses.map((opt) => (
+            <div className="bg-surface border border-border rounded-2xl p-4">
+              <div className="text-[10px] uppercase tracking-wide text-muted mb-2">Call status</div>
+              <div className="flex flex-wrap gap-1.5">
+                {statuses.map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => handleStatusClick(opt.value)}
+                    className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${statusClass(opt.color)} ${
+                      lead?.status === opt.value ? "ring-1 ring-accent" : "opacity-70 hover:opacity-100"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
                 <button
-                  key={opt.value}
-                  onClick={() => handleStatusClick(opt.value)}
-                  className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${statusClass(opt.color)} ${
-                    lead?.status === opt.value ? "ring-1 ring-accent" : "opacity-70 hover:opacity-100"
+                  onClick={() => updateLead({ priority: !lead?.priority })}
+                  className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border transition-colors ${
+                    lead?.priority ? "bg-accent/20 text-accent border-accent" : "text-muted border-border hover:text-ink"
                   }`}
                 >
-                  {opt.label}
+                  <Star size={12} fill={lead?.priority ? "currentColor" : "none"} />
+                  Important
                 </button>
-              ))}
-              <button
-                onClick={() => updateLead({ priority: !lead?.priority })}
-                className={`flex items-center gap-1 text-xs px-3 py-1.5 rounded-full border transition-colors ${
-                  lead?.priority
-                    ? "bg-accent/20 text-accent border-accent"
-                    : "text-muted border-border hover:text-ink"
-                }`}
-              >
-                <Star size={12} fill={lead?.priority ? "currentColor" : "none"} />
-                Important
-              </button>
-              <button
-                onClick={toggleSaved}
-                disabled={savingLead}
-                className={`flex items-center gap-1 text-xs px-3 py-1.5 rounded-full border transition-colors disabled:opacity-60 ${
-                  lead?.saved
-                    ? "bg-accent/20 text-accent border-accent"
-                    : "text-muted border-border hover:text-ink"
-                }`}
-                title="Save this MC to export later"
-              >
-                <Bookmark size={12} fill={lead?.saved ? "currentColor" : "none"} />
-                {lead?.saved ? "Saved" : "Save MC"}
-              </button>
+                <button
+                  onClick={toggleSaved}
+                  disabled={savingLead}
+                  className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border transition-colors disabled:opacity-60 ${
+                    lead?.saved ? "bg-accent/20 text-accent border-accent" : "text-muted border-border hover:text-ink"
+                  }`}
+                  title="Save this MC to export later"
+                >
+                  <Bookmark size={12} fill={lead?.saved ? "currentColor" : "none"} />
+                  {lead?.saved ? "Saved" : "Save MC"}
+                </button>
+              </div>
+
+              {showCallbackPrompt && (
+                <CallbackPrompt
+                  onCancel={() => setShowCallbackPrompt(false)}
+                  onSave={(date, note) => {
+                    updateLead({ status: "callback", reminder_date: date, reminder_note: note });
+                    setShowCallbackPrompt(false);
+                  }}
+                />
+              )}
+
+              <textarea
+                value={notesDraft}
+                onChange={(e) => handleNotesChange(e.target.value)}
+                placeholder="Notes — call back after 3pm, spoke with dispatcher, etc."
+                rows={3}
+                className="w-full mt-3 bg-surface2 border border-border rounded-xl px-3 py-2 text-sm text-ink focus:border-accent outline-none resize-none"
+              />
             </div>
 
-            {showCallbackPrompt && (
-              <CallbackPrompt
-                onCancel={() => setShowCallbackPrompt(false)}
-                onSave={(date, note) => {
-                  updateLead({ status: "callback", reminder_date: date, reminder_note: note });
-                  setShowCallbackPrompt(false);
-                }}
-              />
-            )}
-
-            <textarea
-              value={notesDraft}
-              onChange={(e) => handleNotesChange(e.target.value)}
-              placeholder="Notes — call back after 3pm, spoke with dispatcher, etc."
-              rows={2}
-              className="w-full mt-3 bg-surface2 border border-border rounded-xl px-3 py-2.5 text-sm text-ink focus:border-accent outline-none resize-none"
-            />
-          </div>
-
-          <div className="flex gap-2 mt-6">
-            <button
-              onClick={handleBack}
-              disabled={history.length === 0 || loading}
-              className="flex items-center gap-1 bg-surface2 border border-border text-ink font-medium rounded-xl px-4 py-3.5 disabled:opacity-40 hover:border-accent transition-colors"
-            >
-              <ChevronLeft size={16} />
-              Back
-            </button>
-            <button
-              onClick={handleNext}
-              disabled={loading}
-              className="flex-1 bg-accent glow-accent text-oncolor font-semibold rounded-xl py-3.5 hover:bg-accent/90 disabled:opacity-50 transition-all"
-            >
-              {loading ? "Loading…" : "Next active carrier →"}
-            </button>
-          </div>
+            <div className="flex gap-2">
+              <button
+                onClick={handleBack}
+                disabled={history.length === 0 || loading}
+                className="flex items-center gap-1 bg-surface2 border border-border text-ink font-medium rounded-xl px-4 py-3 disabled:opacity-40 hover:border-accent transition-colors"
+              >
+                <ChevronLeft size={16} />
+                Back
+              </button>
+              <button
+                onClick={handleNext}
+                disabled={loading}
+                className="flex-1 bg-accent glow-accent text-oncolor font-semibold rounded-xl py-3 hover:bg-accent/90 disabled:opacity-50 transition-all"
+              >
+                {loading ? "Loading…" : "Next active carrier →"}
+              </button>
+            </div>
+          </aside>
         </div>
       )}
     </div>

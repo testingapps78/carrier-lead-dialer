@@ -7,7 +7,8 @@ import { Phone, ListChecks, Clock, Settings, LogOut, Users, UserCircle, Coffee }
 import { createClient } from "@/lib/supabase/client";
 import ThemeToggle from "@/components/ThemeToggle";
 
-export default function Nav({ isAdmin }: { isAdmin: boolean }) {
+export default function Nav({ isAdmin, wide = false }: { isAdmin: boolean; wide?: boolean }) {
+  const width = wide ? "max-w-[1500px]" : "max-w-3xl";
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
@@ -38,7 +39,7 @@ export default function Nav({ isAdmin }: { isAdmin: boolean }) {
     <>
       {/* Slim top bar — identity + sign out, no nav links here anymore */}
       <header className="sticky top-0 z-30 border-b border-border/60 bg-canvas/85 backdrop-blur-md">
-        <div className="max-w-3xl mx-auto px-4 h-12 flex items-center justify-between">
+        <div className={`${width} mx-auto px-4 lg:px-6 h-12 flex items-center justify-between`}>
           <div className="flex items-center gap-2">
             <img src="/logo-mark.png" alt="" className="h-5 w-auto opacity-90" />
             <span className="font-display font-semibold tracking-wide text-accent text-xs uppercase">
@@ -70,7 +71,7 @@ export default function Nav({ isAdmin }: { isAdmin: boolean }) {
         className="fixed bottom-0 left-0 right-0 z-30 border-t border-border/60 bg-surface/95 backdrop-blur-md"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
-        <div className="max-w-3xl mx-auto grid" style={{ gridTemplateColumns: `repeat(${tabs.length}, 1fr)` }}>
+        <div className={`${width} mx-auto grid`} style={{ gridTemplateColumns: `repeat(${tabs.length}, 1fr)` }}>
           {tabs.map((tab) => {
             const active = pathname === tab.href;
             const Icon = tab.icon;

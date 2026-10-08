@@ -145,8 +145,8 @@ export default function AIPanel({
   }
 
   return (
-    <div className="mt-5 bg-surface2 border border-border rounded-xl p-4">
-      <div className="flex items-center justify-between mb-3">
+    <div className="bg-surface border border-border rounded-2xl p-3">
+      <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-accent">
           <Sparkles size={12} /> AI helper
         </div>
@@ -215,13 +215,13 @@ export default function AIPanel({
             type="button"
             onClick={() => run(t)}
             disabled={loading !== null}
-            className={`text-sm px-3 py-2 rounded-lg border transition-colors min-h-[40px] disabled:opacity-60 ${
+            className={`text-xs px-2.5 py-1.5 rounded-lg border transition-colors min-h-[32px] disabled:opacity-60 ${
               task === t ? "border-accent text-accent bg-accent/10" : "border-border text-ink hover:border-accent"
             }`}
           >
             {loading === t ? (
               <span className="flex items-center gap-1.5">
-                <Loader2 size={13} className="animate-spin" /> Thinking…
+                <Loader2 size={12} className="animate-spin" /> Thinking…
               </span>
             ) : (
               TASK_LABEL[t]
@@ -230,7 +230,9 @@ export default function AIPanel({
         ))}
       </div>
 
-      {error && <div className="mt-3 text-sm text-bad">{error}</div>}
+      {error && <div className="mt-2 text-sm text-bad">{error}</div>}
+
+      <div className="lg:max-h-[34vh] lg:overflow-y-auto pr-1">
 
       {result && task === "coach" && (
         <div className="mt-4 space-y-4 text-sm">
@@ -395,6 +397,7 @@ export default function AIPanel({
           )}
         </div>
       )}
+      </div>
     </div>
   );
 }
