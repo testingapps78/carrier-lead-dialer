@@ -22,6 +22,8 @@ export interface RawFmcsaRecord {
   email_address?: string;
   company_rep1?: string;
   company_rep2?: string;
+  company_officer_1?: string; // some FMCSA feeds name the officer fields this way
+  company_officer_2?: string;
   phy_street?: string;
   phy_city?: string;
   phy_state?: string;
@@ -100,8 +102,8 @@ export function normalize(raw: RawFmcsaRecord): NormalizedCarrier | null {
     // Per FMCSA's official Census File data dictionary: "Name and title of
     // the [first/second] company representative." Comes from the same
     // response as everything else here — no extra request, no MOTUS.
-    company_rep1: raw.company_rep1 ?? null,
-    company_rep2: raw.company_rep2 ?? null,
+    company_rep1: raw.company_rep1 ?? raw.company_officer_1 ?? null,
+    company_rep2: raw.company_rep2 ?? raw.company_officer_2 ?? null,
     phy_street: raw.phy_street ?? null,
     phy_city: raw.phy_city ?? null,
     phy_state: raw.phy_state ?? null,
