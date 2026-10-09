@@ -20,11 +20,10 @@ export async function GET(request: NextRequest) {
   const { data: carriers, error } = await supabase.from("carriers").select("*").in("dot_number", dots);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  const { data: leads } = await supabase
-    .from("leads")
-    .select("dot_number, status, priority, notes, last_called_at, saved")
-    .eq("user_id", user.id)
-    .in("dot_number", dots);
+  // Fail closed: if the lead lookup fails we must not hand back carriers that look like "no lead",
+  // because that could make a Do Not Call lead look dialable.
+  const { data: leads, error: leadsError } = await supabase.from("leads").select("*").eq("user_id", user.id).in("dot_number", dots);
+  if (leadsError) return NextResponse.json({ error: "Couldn't check your lead notes and restrictions. Try again." }, { status: 500 });
 
   const leadByDot = new Map((leads ?? []).map((l) => [l.dot_number, l]));
   const merged = (carriers ?? []).map((c) => ({ ...c, leads: leadByDot.get(c.dot_number) ?? null }));

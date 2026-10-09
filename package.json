@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "node --test tests/*.test.ts",
+    "test:db": "bash supabase/tests/run.sh"
   },
   "dependencies": {
     "@fontsource/ibm-plex-mono": "^5.3.0",

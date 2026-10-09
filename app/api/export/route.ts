@@ -1,22 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { fetchAllPages, toCsv, withBom } from "@/lib/csv";
+import { formatCallbackDisplay } from "@/lib/callbackTime";
 
 export const dynamic = "force-dynamic";
 
-function toCsvValue(v: unknown): string {
-  const s = v === null || v === undefined ? "" : String(v);
-  if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-  return s;
-}
-
-function toCsv(rows: Record<string, unknown>[]): string {
-  if (rows.length === 0) return "";
-  const headers = Object.keys(rows[0]);
-  const lines = [headers.join(",")];
-  for (const row of rows) {
-    lines.push(headers.map((h) => toCsvValue(row[h])).join(","));
-  }
-  return lines.join("\n");
+// Newer personal-lead columns. They are added after the existing ones so current spreadsheets keep working.
+// Callback time is shown in the timezone it was scheduled in. last_activity is the older status-change
+// timestamp; last_call_attempt/last_logged_call come from real call events only (see lead_events).
+function personalColumns(l: any) {
+  return {
+    confirmed_contact_name: l.contact_override_name ?? "",
+    confirmed_contact_role: l.contact_override_role ?? "",
+    confirmed_contact_at: l.contact_confirmed_at ?? "",
+    callback_at_utc: l.callback_at ?? "",
+    callback_timezone: l.callback_timezone ?? "",
+    callback_local: l.callback_at && l.callback_timezone ? formatCallbackDisplay(l.callback_at, l.callback_timezone) : "",
+    callback_date: l.reminder_date ?? "",
+    callback_note: l.reminder_note ?? "",
+    callback_completed: l.reminder_done ? "yes" : "",
+    callback_completed_at: l.reminder_completed_at ?? "",
+  };
 }
 
 export async function GET(request: NextRequest) {
@@ -51,11 +55,17 @@ export async function GET(request: NextRequest) {
   const admin = createAdminClient();
 
   if (kind === "shifts") {
-    let query = admin.from("shifts").select("*").eq("user_id", targetUserId).order("check_in", { ascending: false });
-    if (from) query = query.gte("check_in", from);
-    if (to) query = query.lte("check_in", to + "T23:59:59");
-    const { data, error } = await query;
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    let data: any[];
+    try {
+      data = await fetchAllPages<any>((a, b) => {
+        let query = admin.from("shifts").select("*").eq("user_id", targetUserId).order("check_in", { ascending: false }).order("id", { ascending: false });
+        if (from) query = query.gte("check_in", from);
+        if (to) query = query.lte("check_in", to + "T23:59:59");
+        return query.range(a, b);
+      });
+    } catch (e: any) {
+      return NextResponse.json({ error: e.message }, { status: 500 });
+    }
 
     const rows = (data ?? []).map((s: any) => ({
       check_in: s.check_in,
@@ -68,22 +78,30 @@ export async function GET(request: NextRequest) {
       carriers_logged: s.carriers_logged,
     }));
 
-    return new NextResponse(toCsv(rows), {
+    return new NextResponse(withBom(toCsv(rows)), {
       headers: {
-        "Content-Type": "text/csv",
+        "Content-Type": "text/csv; charset=utf-8",
         "Content-Disposition": `attachment; filename="shifts-${targetUserId.slice(0, 8)}.csv"`,
       },
     });
   }
 
   if (kind === "saved") {
-    const { data, error } = await admin
-      .from("leads")
-      .select("*, carriers(*)")
-      .eq("user_id", targetUserId)
-      .eq("saved", true)
-      .order("saved_at", { ascending: false });
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    let data: any[];
+    try {
+      data = await fetchAllPages<any>((a, b) =>
+        admin
+          .from("leads")
+          .select("*, carriers(*)")
+          .eq("user_id", targetUserId)
+          .eq("saved", true)
+          .order("saved_at", { ascending: false })
+          .order("dot_number", { ascending: false })
+          .range(a, b)
+      );
+    } catch (e: any) {
+      return NextResponse.json({ error: e.message }, { status: 500 });
+    }
 
     const rows = (data ?? []).map((l: any) => {
       const c = l.carriers ?? {};
@@ -115,11 +133,12 @@ export async function GET(request: NextRequest) {
         status: l.status,
         notes: l.notes ?? "",
         saved_at: l.saved_at ?? "",
+        ...personalColumns(l),
       };
     });
 
     // BOM so Excel opens the UTF-8 file with correct characters.
-    return new NextResponse("\uFEFF" + toCsv(rows), {
+    return new NextResponse(withBom(toCsv(rows)), {
       headers: {
         "Content-Type": "text/csv; charset=utf-8",
         "Content-Disposition": `attachment; filename="saved-mcs-${new Date().toISOString().slice(0, 10)}.csv"`,
@@ -127,17 +146,29 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  let query = admin
-    .from("leads")
-    .select("*, carriers(legal_name, dba_name, phone, phy_city, phy_state, power_units, docket_prefix, docket_number)")
-    .eq("user_id", targetUserId)
-    .order("updated_at", { ascending: false });
-  if (from) query = query.gte("updated_at", from);
-  if (to) query = query.lte("updated_at", to + "T23:59:59");
-  const { data, error } = await query;
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  const statusFilter = params.get("status");
+  let leadRows: any[];
+  try {
+    leadRows = await fetchAllPages<any>((a, b) => {
+      let query = admin
+        .from("leads")
+        .select("*, carriers(legal_name, dba_name, phone, phy_city, phy_state, power_units, docket_prefix, docket_number)")
+        .eq("user_id", targetUserId)
+        .order("updated_at", { ascending: false })
+        .order("dot_number", { ascending: false });
+      if (from) query = query.gte("updated_at", from);
+      if (to) query = query.lte("updated_at", to + "T23:59:59");
+      if (statusFilter) query = query.eq("status", statusFilter);
+      if (params.get("important") === "1") query = query.eq("priority", true);
+      if (params.get("saved") === "1") query = query.eq("saved", true);
+      if (params.get("dnc") === "1") query = query.eq("status", "do_not_call");
+      return query.range(a, b);
+    });
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message }, { status: 500 });
+  }
 
-  const rows = (data ?? []).map((l: any) => ({
+  const rows = leadRows.map((l: any) => ({
     dot_number: l.dot_number,
     mc_number: l.carriers?.docket_number ?? "",
     legal_name: l.carriers?.legal_name ?? "",
@@ -151,11 +182,12 @@ export async function GET(request: NextRequest) {
     reminder_date: l.reminder_date ?? "",
     last_called_at: l.last_called_at ?? "",
     updated_at: l.updated_at,
+    ...personalColumns(l),
   }));
 
-  return new NextResponse(toCsv(rows), {
+  return new NextResponse(withBom(toCsv(rows)), {
     headers: {
-      "Content-Type": "text/csv",
+      "Content-Type": "text/csv; charset=utf-8",
       "Content-Disposition": `attachment; filename="leads-${targetUserId.slice(0, 8)}.csv"`,
     },
   });
