@@ -9,6 +9,14 @@ export interface Lead {
   reminder_done?: boolean;
   saved?: boolean;
   saved_at?: string | null;
+  // agent-confirmed contact (personal to this lead)
+  contact_override_name?: string | null;
+  contact_override_role?: string | null;
+  contact_confirmed_at?: string | null;
+  // timed callbacks (reminder_* above stay as the date, note and done flag)
+  callback_at?: string | null;
+  callback_timezone?: string | null;
+  reminder_completed_at?: string | null;
 }
 
 export interface MotusOfficial {

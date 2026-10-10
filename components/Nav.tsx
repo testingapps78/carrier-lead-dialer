@@ -1,5 +1,6 @@
 "use client";
 
+import { flushAllDrafts, clearStoredDraftsForLogout } from "@/lib/useLeadSaver";
 import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -30,6 +31,12 @@ export default function Nav({ isAdmin, wide = false }: { isAdmin: boolean; wide?
   ];
 
   async function signOut() {
+    // Save any notes still waiting before the session ends, and never discard them silently.
+    const { ok, failed } = await flushAllDrafts();
+    if (!ok && !window.confirm(`${failed} note${failed === 1 ? "" : "s"} couldn't be saved. If you sign out now they will be lost. Sign out anyway?`)) {
+      return;
+    }
+    clearStoredDraftsForLogout(); // drafts never outlive the login that typed them
     await supabase.auth.signOut();
     router.refresh();
     router.push("/login");

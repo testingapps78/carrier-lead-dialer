@@ -1,9 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Phone, PhoneCall, Mail, MapPin, Truck, Star, Bookmark, Loader2, ChevronLeft, Bell, User } from "lucide-react";
+import { Phone, Mail, MapPin, Truck, Star, Bookmark, Loader2, ChevronLeft, User, Bell, History as HistoryIcon, PhoneCall } from "lucide-react";
 import { Carrier, MotusDetails, Shift, formatPhone, getLead, statusClass } from "@/lib/types";
-import { telHref } from "@/lib/callBrief";
+import { useLeadSaver } from "@/lib/useLeadSaver";
+import { friendlyError, newKey, post, api } from "@/lib/leadClient";
+import { callbackBucket } from "@/lib/callbacks";
+import { browserTimeZone } from "@/lib/callbackTime";
+import { CallbackSection, ConfirmedContact, DialButton, DncBanner, HistoryPanel, LogCallForm, NotesEditor, PendingNotes } from "@/components/LeadTools";
 import { OpenerLine, BriefFacts, OwnerTrucksCargo, FactLabel } from "@/components/CallBrief";
 import ViewMore from "@/components/ViewMore";
 import AIPanel from "@/components/AIPanel";
@@ -38,48 +42,7 @@ function useOpenShift() {
   return { shift, setShift, loading, reload: load };
 }
 
-function CallbackPrompt({
-  onSave,
-  onCancel,
-}: {
-  onSave: (date: string, note: string) => void;
-  onCancel: () => void;
-}) {
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [note, setNote] = useState("");
-
-  return (
-    <div className="bg-surface2 border border-accent/40 rounded-lg p-3 mt-2 animate-fade-in">
-      <div className="text-xs text-accent font-medium mb-2 flex items-center gap-1">
-        <Bell size={12} /> When should this come back to you?
-      </div>
-      <div className="flex flex-wrap gap-2">
-        <input
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          className="bg-surface border border-border rounded px-2 py-1.5 text-sm text-ink focus:border-accent outline-none"
-        />
-        <input
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          placeholder="Message — e.g. asked to call after fleet renewal"
-          className="flex-1 min-w-[140px] bg-surface border border-border rounded px-2 py-1.5 text-sm text-ink focus:border-accent outline-none"
-        />
-      </div>
-      <div className="flex justify-end gap-2 mt-2">
-        <button onClick={onCancel} className="text-xs text-muted px-2 py-1">
-          Cancel
-        </button>
-        <button onClick={() => onSave(date, note)} className="text-xs bg-accent text-oncolor font-semibold px-3 py-1.5 rounded-lg">
-          Save reminder
-        </button>
-      </div>
-    </div>
-  );
-}
-
-export default function DialTool() {
+export default function DialTool({ userId }: { userId: string }) {
   const { statuses } = useCallStatuses();
   const { shift, setShift, loading: shiftLoading } = useOpenShift();
   const [mode, setMode] = useState<Mode>("mc");
@@ -101,10 +64,20 @@ export default function DialTool() {
   const [exhausted, setExhausted] = useState(false);
   const [started, setStarted] = useState(false);
   const [restoring, setRestoring] = useState(true);
-  const [notesDraft, setNotesDraft] = useState("");
-  const [savingLead, setSavingLead] = useState(false);
-  const [showCallbackPrompt, setShowCallbackPrompt] = useState(false);
-  const notesTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [pendingEdits, setPendingEdits] = useState(0);
+  const savingLead = pendingEdits > 0;
+  const [editError, setEditError] = useState<{ dot: number; message: string; retry: () => void } | null>(null);
+  const [panel, setPanel] = useState<"none" | "log" | "callback" | "history">("none");
+  const [continuation, setContinuation] = useState<string | null>(null);
+  const editChains = useRef(new Map<number, Promise<unknown>>());
+
+  // A server-confirmed lead is applied ONLY to the carrier it belongs to (on screen or in Back history),
+  // never to whichever carrier happens to be showing when a slow response arrives.
+  const applyLead = useCallback((dot: number, lead: any) => {
+    setCurrent((prev) => (prev && prev.dot_number === dot ? { ...prev, leads: lead } : prev));
+    setHistory((h) => h.map((c) => (c.dot_number === dot ? { ...c, leads: lead } : c)));
+  }, []);
+  const saver = useLeadSaver(userId, applyLead);
 
   // Warn before leaving the tab if a shift is currently open.
   useEffect(() => {
@@ -139,16 +112,16 @@ export default function DialTool() {
 
         const dotsToFetch = [...(s.history ?? []), s.currentDot].filter(Boolean);
         if (dotsToFetch.length > 0) {
-          const lookupRes = await fetch(`/api/carriers/lookup?dots=${dotsToFetch.join(",")}`);
-          const lookupData = await lookupRes.json();
-          const byDot = new Map(lookupData.carriers.map((c: Carrier) => [c.dot_number, c]));
+          const lookup = await api(`/api/carriers/lookup?dots=${dotsToFetch.join(",")}`);
+          if (!lookup.ok) {
+            setError(`Couldn't restore your last scan (${friendlyError(lookup)}). Press Start scan to continue, or reload.`);
+            return;
+          }
+          const byDot = new Map<number, Carrier>(lookup.data.carriers.map((c: Carrier) => [c.dot_number, c]));
           const restoredHistory = (s.history ?? []).map((d: number) => byDot.get(d)).filter(Boolean) as Carrier[];
           const restoredCurrent = byDot.get(s.currentDot) as Carrier | undefined;
           setHistory(restoredHistory);
-          if (restoredCurrent) {
-            setCurrent(restoredCurrent);
-            setNotesDraft(getLead(restoredCurrent)?.notes ?? "");
-          }
+          if (restoredCurrent) setCurrent(restoredCurrent);
         }
         setStarted(true);
       } catch {
@@ -238,16 +211,22 @@ export default function DialTool() {
           }
           throw new Error(data?.error || "Lookup failed.");
         }
-        if (!data.carrier) {
+        if (!data.carrier && data.continuation) {
+          // Everything in this stretch was on the agent's Do Not Call list: keep going from the cursor.
+          setExhausted(false);
+          setCursor(data.continuation.cursor);
+          setContinuation(data.continuation.message);
+        } else if (!data.carrier) {
+          setContinuation(null);
           setExhausted(true);
           setCurrent(null);
         } else {
+          setContinuation(null);
           setExhausted(false);
           setCurrent((prevCurrent) => {
             setHistory((h) => (prevCurrent ? [...h, prevCurrent] : h));
             return data.carrier;
           });
-          setNotesDraft(getLead(data.carrier)?.notes ?? "");
           const nextCursor = mode === "dot" ? data.carrier.dot_number : data.carrier.docket_number;
           setCursor(nextCursor);
           setStartNumber((prevStart) => {
@@ -272,6 +251,7 @@ export default function DialTool() {
 
   function handleStart(e: React.FormEvent) {
     e.preventDefault();
+    if (current) void saver.flush(current.dot_number);
     const parsed = parseInt(startInput.replace(/\D/g, ""), 10);
     const after = Number.isFinite(parsed) ? parsed - 1 : 0;
     setStarted(true);
@@ -284,16 +264,17 @@ export default function DialTool() {
 
   function handleNext() {
     if (cursor === null) return;
+    if (current) void saver.flush(current.dot_number);
     fetchNext(cursor);
   }
 
   function handleBack() {
     if (history.length === 0) return;
+    if (current) void saver.flush(current.dot_number);
     const prev = history[history.length - 1];
     const newHistory = history.slice(0, -1);
     setHistory(newHistory);
     setCurrent(prev);
-    setNotesDraft(getLead(prev)?.notes ?? "");
     const prevCursor = mode === "dot" ? prev.dot_number : prev.docket_number ?? prev.dot_number;
     setCursor(prevCursor);
     setExhausted(false);
@@ -305,23 +286,25 @@ export default function DialTool() {
     );
   }
 
-  async function updateLead(patch: { status?: string; priority?: boolean; saved?: boolean; notes?: string; reminder_date?: string; reminder_note?: string }) {
-    if (!current) return;
-    setSavingLead(true);
-    try {
-      const res = await fetch("/api/leads", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ dot_number: current.dot_number, ...patch }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      setCurrent((prev) => (prev ? { ...prev, leads: data.lead } : prev));
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setSavingLead(false);
-    }
+  // Status / important / saved edits: sent one at a time per lead, in order, with the lead's identity
+  // captured now. The confirmed lead from each response is applied to that same lead only.
+  function leadEdit(patch: { status?: string; priority?: boolean; saved?: boolean }, key: string = newKey()): Promise<boolean> {
+    if (!current) return Promise.resolve(false);
+    const dot = current.dot_number;
+    setPendingEdits((n) => n + 1);
+    setEditError(null);
+    const previous = editChains.current.get(dot) ?? Promise.resolve();
+    const run = previous.then(async () => {
+      const r = await post("/api/leads", { dot_number: dot, ...patch, idempotency_key: key, expected_user_id: userId });
+      if (r.ok) {
+        applyLead(dot, r.data.lead);
+        return true;
+      }
+      setEditError({ dot, message: friendlyError(r), retry: () => void leadEdit(patch, key) });
+      return false;
+    });
+    editChains.current.set(dot, run.catch(() => false));
+    return run.finally(() => setPendingEdits((n) => n - 1));
   }
 
   // Owner names, truck types and cargo come from FMCSA's newer registration records.
@@ -341,32 +324,43 @@ export default function DialTool() {
 
   async function toggleSaved() {
     if (!current) return;
+    const dot = current.dot_number;
     const next = !getLead(current)?.saved;
-    await updateLead({ saved: next });
+    const ok = await leadEdit({ saved: next });
     // When saving, also fetch owner/truck details in the background so the
     // exported spreadsheet has them (they are cached on the carrier).
-    const haveDetails = !!current.motus_details || (enriched?.dot === current.dot_number && !!enriched.details);
-    if (next && !haveDetails && !(detailsState.dot === current.dot_number && detailsState.loading)) {
-      loadDetails(current.dot_number);
+    const haveDetails = !!current.motus_details || (enriched?.dot === dot && !!enriched.details);
+    if (ok && next && !haveDetails && !(detailsState.dot === dot && detailsState.loading)) {
+      loadDetails(dot);
     }
   }
 
-  function handleStatusClick(value: string) {
+  async function handleStatusClick(value: string) {
     if (value === "callback") {
-      setShowCallbackPrompt(true);
+      // A callback is a status plus a time: if the lead was Do Not Call, lift that first, then ask for the time.
+      if (getLead(current)?.status === "do_not_call") {
+        const ok = await leadEdit({ status: "callback" });
+        if (!ok) return;
+      }
+      setPanel("callback");
       return;
     }
-    setShowCallbackPrompt(false);
-    updateLead({ status: value });
+    setPanel((p) => (p === "callback" ? "none" : p));
+    void leadEdit({ status: value });
   }
 
-  function handleNotesChange(value: string) {
-    setNotesDraft(value);
-    if (notesTimer.current) clearTimeout(notesTimer.current);
-    notesTimer.current = setTimeout(() => updateLead({ notes: value }), 700);
-  }
+  // A different carrier is on screen: close the small panels.
+  useEffect(() => {
+    setPanel("none");
+  }, [current?.dot_number]);
 
   const lead = getLead(current);
+  const isDnc = lead?.status === "do_not_call";
+  const viewerTz = browserTimeZone();
+  const dotLabel = (d: number) => {
+    const c = [current, ...history].find((x) => x && x.dot_number === d);
+    return c?.legal_name ? `${c.legal_name} (DOT ${d})` : `DOT ${d}`;
+  };
   const phone = formatPhone(current?.phone ?? null);
   const cell = formatPhone(current?.cell_phone ?? null);
 
@@ -446,8 +440,28 @@ export default function DialTool() {
         </form>
       </div>
 
+      <PendingNotes saver={saver} labelFor={dotLabel} />
+
+      {editError && (
+        <div className="flex items-center gap-2 flex-wrap bg-bad/10 border border-bad/40 text-bad text-sm rounded-xl px-4 py-2 mb-3">
+          <span>Couldn&apos;t save the change for {dotLabel(editError.dot)}: {editError.message}</span>
+          <button type="button" onClick={editError.retry} className="underline font-medium">Retry</button>
+        </div>
+      )}
+
       {notice && (
         <div className="bg-accent/10 border border-accent/40 text-accent text-sm rounded-xl px-4 py-2 mb-3">{notice}</div>
+      )}
+
+      {continuation && (
+        <div className="flex items-center gap-3 flex-wrap bg-accent/10 border border-accent/40 text-accent text-sm rounded-xl px-4 py-2 mb-3">
+          <span>{continuation}</span>
+          {!current && (
+            <button type="button" onClick={handleNext} disabled={loading} className="bg-accent text-oncolor font-semibold rounded-lg px-3 py-1.5 disabled:opacity-50">
+              Keep scanning
+            </button>
+          )}
+        </div>
       )}
 
       {error && (
@@ -520,8 +534,16 @@ export default function DialTool() {
               </div>
             )}
 
+            <ConfirmedContact dot={current.dot_number} lead={lead} userId={userId} onLead={applyLead} />
+
+            {isDnc && (
+              <div className="mt-3">
+                <DncBanner />
+              </div>
+            )}
+
             <div className="mt-3">
-              <OpenerLine carrier={current} />
+              <OpenerLine carrier={current} confirmedName={lead?.contact_override_name} />
             </div>
 
             <div className="grid grid-cols-2 xl:grid-cols-3 gap-x-4 gap-y-3 mt-4">
@@ -530,14 +552,8 @@ export default function DialTool() {
                 {phone ? (
                   <>
                     <span className="mile-marker text-lg">{phone}</span>
-                    <div className="flex items-center gap-1.5 mt-1">
-                      <a
-                        href={telHref(current.phone)}
-                        className="flex items-center justify-center gap-1.5 bg-accent text-oncolor font-semibold rounded-lg px-4 py-2 min-h-[40px] text-sm hover:bg-accent/90 transition-colors"
-                        title="Dial with your default calling app"
-                      >
-                        <PhoneCall size={15} /> Dial
-                      </a>
+                    <div className="flex items-start gap-1.5 mt-1">
+                      <DialButton number={current.phone} dot={current.dot_number} userId={userId} blocked={isDnc} onLead={applyLead} />
                       <CopyButton value={current.phone ?? ""} />
                     </div>
                   </>
@@ -545,15 +561,9 @@ export default function DialTool() {
                   <span className="text-muted text-sm">Not on file</span>
                 )}
                 {cell && (
-                  <div className="flex items-center gap-1.5 mt-2">
-                    <span className="mile-marker text-sm text-muted">{cell}</span>
-                    <a
-                      href={telHref(current.cell_phone)}
-                      className="flex items-center gap-1 text-xs border border-accent text-accent font-medium rounded-lg px-2.5 py-1.5 hover:bg-accent/10 transition-colors"
-                      title="Dial the cell number"
-                    >
-                      <PhoneCall size={12} /> Cell
-                    </a>
+                  <div className="flex items-start gap-1.5 mt-2">
+                    <span className="mile-marker text-sm text-muted pt-1">{cell}</span>
+                    <DialButton number={current.cell_phone} dot={current.dot_number} userId={userId} blocked={isDnc} label="Cell" variant="secondary" onLead={applyLead} />
                     <CopyButton value={current.cell_phone ?? ""} />
                   </div>
                 )}
@@ -607,9 +617,9 @@ export default function DialTool() {
           <aside className="lg:col-span-5 flex flex-col gap-3">
             <AIPanel
               carrier={current}
-              notes={notesDraft}
+              notes={saver.getDraft(current.dot_number) ?? lead?.notes ?? ""}
               statuses={statuses}
-              onApplyNotes={handleNotesChange}
+              onApplyNotes={(text) => saver.setNotes(current.dot_number, text)}
               onApplyStatus={handleStatusClick}
             />
 
@@ -628,7 +638,7 @@ export default function DialTool() {
                   </button>
                 ))}
                 <button
-                  onClick={() => updateLead({ priority: !lead?.priority })}
+                  onClick={() => void leadEdit({ priority: !lead?.priority })}
                   className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border transition-colors ${
                     lead?.priority ? "bg-accent/20 text-accent border-accent" : "text-muted border-border hover:text-ink"
                   }`}
@@ -649,23 +659,63 @@ export default function DialTool() {
                 </button>
               </div>
 
-              {showCallbackPrompt && (
-                <CallbackPrompt
-                  onCancel={() => setShowCallbackPrompt(false)}
-                  onSave={(date, note) => {
-                    updateLead({ status: "callback", reminder_date: date, reminder_note: note });
-                    setShowCallbackPrompt(false);
+              <div className="mt-3">
+                <CallbackSection
+                  dot={current.dot_number}
+                  lead={lead}
+                  userId={userId}
+                  onLead={applyLead}
+                  open={panel === "callback"}
+                  onOpenChange={(v) => setPanel(v ? "callback" : "none")}
+                  onSaved={() => {
+                    // Setting a callback also marks the lead as Callback (a separate, confirmed edit).
+                    if (getLead(current)?.status !== "callback") void leadEdit({ status: "callback" });
                   }}
                 />
-              )}
+              </div>
 
-              <textarea
-                value={notesDraft}
-                onChange={(e) => handleNotesChange(e.target.value)}
-                placeholder="Notes — call back after 3pm, spoke with dispatcher, etc."
-                rows={3}
-                className="w-full mt-3 bg-surface2 border border-border rounded-xl px-3 py-2 text-sm text-ink focus:border-accent outline-none resize-none"
-              />
+              <div className="mt-3">
+                <NotesEditor dot={current.dot_number} serverNotes={lead?.notes} saver={saver} />
+              </div>
+
+              <div className="flex flex-wrap items-center gap-1.5 mt-3">
+                {!isDnc && (
+                  <button
+                    type="button"
+                    onClick={() => setPanel((p) => (p === "log" ? "none" : "log"))}
+                    className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border transition-colors ${panel === "log" ? "border-accent text-accent bg-accent/10" : "border-border text-muted hover:text-ink"}`}
+                  >
+                    <PhoneCall size={12} /> Log call
+                  </button>
+                )}
+                {!isDnc && (
+                  <button
+                    type="button"
+                    onClick={() => setPanel((p) => (p === "callback" ? "none" : "callback"))}
+                    className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border transition-colors ${panel === "callback" ? "border-accent text-accent bg-accent/10" : "border-border text-muted hover:text-ink"}`}
+                  >
+                    <Bell size={12} /> Callback
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setPanel((p) => (p === "history" ? "none" : "history"))}
+                  className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border transition-colors ${panel === "history" ? "border-accent text-accent bg-accent/10" : "border-border text-muted hover:text-ink"}`}
+                >
+                  <HistoryIcon size={12} /> History
+                </button>
+              </div>
+
+              {panel === "log" && !isDnc && (
+                <div className="mt-2">
+                  <LogCallForm dot={current.dot_number} userId={userId} statuses={statuses} onLead={applyLead} />
+                </div>
+              )}
+              {panel === "history" && (
+                <div className="mt-2">
+                  <HistoryPanel dot={current.dot_number} statusLabel={(v) => statuses.find((x) => x.value === v)?.label ?? v} />
+                </div>
+              )}
             </div>
 
             <div className="flex gap-2">

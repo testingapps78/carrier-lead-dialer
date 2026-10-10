@@ -14,8 +14,8 @@ export function FactLabel({ icon, children }: { icon: React.ReactNode; children:
 }
 
 /** One short line to say first, with a copy button. */
-export function OpenerLine({ carrier }: { carrier: Carrier }) {
-  const opener = buildOpener(carrier);
+export function OpenerLine({ carrier, confirmedName }: { carrier: Carrier; confirmedName?: string | null }) {
+  const opener = buildOpener(carrier, new Date(), confirmedName);
   return (
     <div className="flex items-center gap-2 bg-surface2 border border-accent/30 rounded-lg pl-3 pr-1.5 py-1.5">
       <span className="text-[10px] uppercase tracking-wide text-accent shrink-0">Say</span>

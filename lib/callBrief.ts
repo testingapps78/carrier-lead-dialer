@@ -133,9 +133,12 @@ export function spokenSeconds(text: string): number {
  * Facts-only opener kept under ~6 seconds spoken (about 15 words): leads with
  * specifics, no permission-seeking, and stops so the carrier can answer.
  */
-export function buildOpener(c: Carrier, now = new Date()): string {
+export function buildOpener(c: Carrier, now = new Date(), confirmedName?: string | null): string {
   void now;
-  const first = guessFirstName(c);
+  // An agent-confirmed contact wins; its first word is used exactly as typed (accents, punctuation, any script).
+  // Without one, the existing automatic greeting logic runs unchanged.
+  const confirmedFirst = confirmedName ? confirmedName.trim().split(/\s+/)[0] || null : null;
+  const first = confirmedFirst ?? guessFirstName(c);
   const person = looksLikePerson(c.legal_name);
   const city = c.phy_city ? titleCase(c.phy_city) : null;
   const place = [city, c.phy_state].filter(Boolean).join(", ");

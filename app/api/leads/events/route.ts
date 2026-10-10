@@ -13,8 +13,7 @@ export async function GET(request: NextRequest) {
   const dot = parseDot(p.get("dot_number"));
   if (dot === null) return badRequest("dot_number is required.");
   const limit = Math.min(Math.max(parseInt(p.get("limit") ?? "50", 10) || 50, 1), 100);
-  const before = p.get("before");
-  if (before && Number.isNaN(Date.parse(before))) return badRequest("Invalid cursor.");
+  const offset = Math.max(parseInt(p.get("offset") ?? "0", 10) || 0, 0);
 
   let query = supabase
     .from("lead_events")
@@ -23,8 +22,7 @@ export async function GET(request: NextRequest) {
     .eq("dot_number", dot)
     .order("occurred_at", { ascending: false })
     .order("id", { ascending: false })
-    .limit(limit + 1);
-  if (before) query = query.lt("occurred_at", before);
+    .range(offset, offset + limit); // one extra row tells us whether there is another page
 
   const { data, error } = await query;
   if (error) return rpcError(error);
