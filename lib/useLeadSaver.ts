@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { LeadNotesSaver, clearAllStoredDrafts, type SaveResult } from "@/lib/leadSaver";
 import { post } from "@/lib/leadClient";
 
@@ -32,16 +32,12 @@ export function clearStoredDraftsForLogout() {
 
 export function useLeadSaver(userId: string, onLead: (dot: number, lead: any) => void): LeadNotesSaver {
   const [, force] = useState(0);
-  const onLeadRef = useRef(onLead);
-  onLeadRef.current = onLead;
-
   const saver = useMemo(
     () =>
       new LeadNotesSaver({
         userId,
         storage: safeStorage(),
         onChange: () => force((n) => n + 1),
-        onLead: (dot, lead) => onLeadRef.current(dot, lead),
         save: async ({ dot, notes, expectedUserId }): Promise<SaveResult> => {
           const r = await post("/api/leads", { dot_number: dot, notes, expected_user_id: expectedUserId });
           if (r.ok) return { ok: true, lead: r.data.lead };
@@ -50,6 +46,10 @@ export function useLeadSaver(userId: string, onLead: (dot: number, lead: any) =>
       }),
     [userId]
   );
+
+  useEffect(() => {
+    saver.setOnLead(onLead);
+  }, [saver, onLead]);
 
   useEffect(() => {
     savers.add(saver);

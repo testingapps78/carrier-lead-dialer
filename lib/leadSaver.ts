@@ -57,6 +57,11 @@ export class LeadNotesSaver {
     return this.opts.userId;
   }
 
+  /** Lets the owning component point confirmed-lead updates at its latest state setter. */
+  setOnLead(fn: ((dot: number, lead: any) => void) | undefined) {
+    this.opts.onLead = fn;
+  }
+
   private key(dot: number) {
     return `${DRAFT_PREFIX}${this.opts.userId}:${dot}`;
   }

@@ -17,7 +17,7 @@ export default async function LeadsPage() {
   return (
     <>
       <Nav isAdmin={isAdmin} />
-      <LeadsList />
+      <LeadsList userId={user?.id ?? ""} />
     </>
   );
 }

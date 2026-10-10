@@ -99,26 +99,43 @@ grant all on public.lead_events to service_role;
 -- ---------------------------------------------------------------------------
 -- 3. Helpers
 -- ---------------------------------------------------------------------------
-create or replace function public.lead_callback_bucket(l public.leads, p_tz text)
+-- Cheap timezone check (pg_timezone_names is slow, about 7 ms per lookup).
+create or replace function public._valid_tz(p_tz text)
+returns boolean
+language plpgsql
+stable
+set search_path = public
+as $$
+begin
+  if p_tz is null or p_tz = '' then return false; end if;
+  perform now() at time zone p_tz;
+  return true;
+exception when others then
+  return false;
+end;
+$$;
+
+create or replace function public.lead_callback_bucket(
+  p_status text, p_callback_at timestamptz, p_reminder_date date, p_done boolean, p_tz text)
 returns text
 language sql
 stable
 set search_path = public
 as $$
   select case
-    when l.status = 'do_not_call' then null
-    when l.callback_at is null and l.reminder_date is null then null
-    when l.reminder_done then 'completed'
-    when l.callback_at is not null then
+    when p_status = 'do_not_call' then null
+    when p_callback_at is null and p_reminder_date is null then null
+    when coalesce(p_done, false) then 'completed'
+    when p_callback_at is not null then
       case
-        when l.callback_at < now() then 'overdue'
-        when (l.callback_at at time zone p_tz)::date = (now() at time zone p_tz)::date then 'today'
+        when p_callback_at < now() then 'overdue'
+        when (p_callback_at at time zone p_tz)::date = (now() at time zone p_tz)::date then 'today'
         else 'upcoming'
       end
     else
       case
-        when l.reminder_date < (now() at time zone p_tz)::date then 'overdue'
-        when l.reminder_date = (now() at time zone p_tz)::date then 'today'
+        when p_reminder_date < (now() at time zone p_tz)::date then 'overdue'
+        when p_reminder_date = (now() at time zone p_tz)::date then 'today'
         else 'upcoming'
       end
   end;
@@ -278,7 +295,7 @@ begin
     raise exception 'give_either_timed_or_date_only' using errcode = '22023';
   end if;
   if p_at is not null then
-    if p_tz is null or not exists (select 1 from pg_timezone_names where name = p_tz) then
+    if not public._valid_tz(p_tz) then
       raise exception 'invalid_timezone' using errcode = '22023';
     end if;
     v_local_date := (p_at at time zone p_tz)::date;
@@ -438,6 +455,8 @@ $$;
 
 -- ---------------------------------------------------------------------------
 -- 8. Search / filter / paginate (runs as the caller: RLS still applies)
+--    Sort keys come from a fixed whitelist and every value is a bound parameter, so nothing the user
+--    types is ever spliced into SQL. Only the requested page (not the whole set) is shaped into JSON.
 -- ---------------------------------------------------------------------------
 create or replace function public.search_leads(
   p_q text default null, p_status text default null,
@@ -454,14 +473,23 @@ as $$
 declare
   v_uid uuid := coalesce(p_user_id, auth.uid());
   v_q text := nullif(btrim(coalesce(p_q, '')), '');
-  v_pat text; v_digits text; v_total bigint; v_rows jsonb;
+  v_pat text; v_digits text; v_where text; v_order text; v_total bigint; v_rows jsonb;
 begin
   if v_uid is null then raise exception 'not_authenticated' using errcode = '28000'; end if;
   if p_limit is null or p_limit < 1 or p_limit > 100 then raise exception 'invalid_limit' using errcode = '22023'; end if;
   if p_offset is null or p_offset < 0 then raise exception 'invalid_offset' using errcode = '22023'; end if;
-  if p_sort not in ('recent','oldest','priority','name','callback') then raise exception 'invalid_sort' using errcode = '22023'; end if;
   if coalesce(p_callback,'') not in ('','overdue','today','upcoming','completed','any') then raise exception 'invalid_callback' using errcode = '22023'; end if;
-  if not exists (select 1 from pg_timezone_names where name = p_tz) then raise exception 'invalid_timezone' using errcode = '22023'; end if;
+  if not public._valid_tz(p_tz) then raise exception 'invalid_timezone' using errcode = '22023'; end if;
+
+  v_order := case p_sort
+    when 'recent'   then 'l.updated_at desc, l.dot_number desc'
+    when 'oldest'   then 'l.updated_at asc, l.dot_number asc'
+    when 'priority' then 'l.priority desc, l.updated_at desc, l.dot_number desc'
+    when 'name'     then 'lower(coalesce(c.legal_name, '''')) asc, l.dot_number asc'
+    when 'callback' then 'coalesce(l.callback_at, (l.reminder_date::timestamp at time zone $7)) asc nulls last, l.dot_number asc'
+    else null end;
+  if v_order is null then raise exception 'invalid_sort' using errcode = '22023'; end if;
+
   if v_q is not null then
     v_q := left(v_q, 100);
     v_pat := '%' || replace(replace(replace(v_q, '\', '\\'), '%', '\%'), '_', '\_') || '%';
@@ -469,53 +497,46 @@ begin
     if char_length(v_digits) < 3 then v_digits := null; end if;
   end if;
 
-  with base as (
-    select l.*, c.legal_name, c.dba_name, c.phone, c.cell_phone, c.phy_city, c.phy_state, c.power_units,
-           c.docket_prefix, c.docket_number,
-           public.lead_callback_bucket(l, p_tz) as bucket,
-           coalesce(l.callback_at, (l.reminder_date::timestamp at time zone p_tz)) as due_at
-    from public.leads l
-    left join public.carriers c on c.dot_number = l.dot_number
-    where l.user_id = v_uid
-      and (p_status is null or p_status = '' or l.status = p_status)
-      and (not coalesce(p_important,false) or l.priority)
-      and (not coalesce(p_saved,false) or l.saved)
-      and (not coalesce(p_dnc,false) or l.status = 'do_not_call')
-      and (v_q is null
-           or c.legal_name ilike v_pat escape '\'
-           or c.dba_name ilike v_pat escape '\'
-           or l.dot_number::text like v_pat escape '\'
-           or c.docket_number::text like v_pat escape '\'
-           or (v_digits is not null and (
-                 regexp_replace(coalesce(c.phone,''), '\D', '', 'g') like '%' || v_digits || '%'
-              or regexp_replace(coalesce(c.cell_phone,''), '\D', '', 'g') like '%' || v_digits || '%')))
-  ), filtered as (
-    select * from base
-    where coalesce(p_callback,'') = ''
-       or (p_callback = 'any' and bucket is not null)
-       or bucket = p_callback
-  )
-  select (select count(*) from filtered),
-         coalesce((select jsonb_agg(r.j order by r.ord) from (
-            select (to_jsonb(f) - 'legal_name' - 'dba_name' - 'phone' - 'cell_phone' - 'phy_city' - 'phy_state'
-                    - 'power_units' - 'docket_prefix' - 'docket_number')
-                   || jsonb_build_object('carriers', jsonb_build_object(
-                        'legal_name', f.legal_name, 'dba_name', f.dba_name, 'phone', f.phone,
-                        'phy_city', f.phy_city, 'phy_state', f.phy_state, 'power_units', f.power_units,
-                        'docket_prefix', f.docket_prefix, 'docket_number', f.docket_number)) as j,
-                   row_number() over (order by
-                     case when p_sort = 'name' then lower(coalesce(f.legal_name,'')) end asc,
-                     case when p_sort = 'callback' then f.due_at end asc nulls last,
-                     case when p_sort = 'priority' then f.priority end desc,
-                     case when p_sort = 'oldest' then f.updated_at end asc,
-                     case when p_sort in ('recent','priority') then f.updated_at end desc,
-                     case when p_sort in ('oldest','name','callback') then f.dot_number end asc,
-                     f.dot_number desc) as ord
-            from filtered f
-            order by ord
-            limit p_limit offset p_offset
-         ) r), '[]'::jsonb)
-  into v_total, v_rows;
+  v_where := $w$
+        l.user_id = $1
+    and ($2 is null or $2 = '' or l.status = $2)
+    and (not coalesce($3, false) or l.priority)
+    and (not coalesce($4, false) or l.saved)
+    and (not coalesce($5, false) or l.status = 'do_not_call')
+    and (case
+           when coalesce($6, '') = '' then true
+           when $6 = 'any' then public.lead_callback_bucket(l.status, l.callback_at, l.reminder_date, l.reminder_done, $7) is not null
+           else public.lead_callback_bucket(l.status, l.callback_at, l.reminder_date, l.reminder_done, $7) = $6
+         end)
+    and ($8 is null
+         or c.legal_name ilike $8 escape '\' or c.dba_name ilike $8 escape '\'
+         or l.dot_number::text like $8 escape '\' or c.docket_number::text like $8 escape '\'
+         or ($9 is not null and (regexp_replace(coalesce(c.phone,''), '\D', '', 'g') like '%' || $9 || '%'
+              or regexp_replace(coalesce(c.cell_phone,''), '\D', '', 'g') like '%' || $9 || '%')))
+  $w$;
+
+  execute 'select count(*) from public.leads l left join public.carriers c on c.dot_number = l.dot_number where ' || v_where
+    into v_total using v_uid, p_status, p_important, p_saved, p_dnc, p_callback, p_tz, v_pat, v_digits;
+
+  execute format($p$
+    select coalesce(jsonb_agg(t.j order by t.ord), '[]'::jsonb) from (
+      select i.j, row_number() over () as ord from (
+        select to_jsonb(l)
+               || jsonb_build_object(
+                    'bucket', public.lead_callback_bucket(l.status, l.callback_at, l.reminder_date, l.reminder_done, $7),
+                    'due_at', coalesce(l.callback_at, (l.reminder_date::timestamp at time zone $7)),
+                    'carriers', jsonb_build_object(
+                      'legal_name', c.legal_name, 'dba_name', c.dba_name, 'phone', c.phone,
+                      'phy_city', c.phy_city, 'phy_state', c.phy_state, 'power_units', c.power_units,
+                      'docket_prefix', c.docket_prefix, 'docket_number', c.docket_number)) as j
+        from public.leads l
+        left join public.carriers c on c.dot_number = l.dot_number
+        where %2$s
+        order by %1$s
+        limit $10 offset $11
+      ) i
+    ) t $p$, v_order, v_where)
+    into v_rows using v_uid, p_status, p_important, p_saved, p_dnc, p_callback, p_tz, v_pat, v_digits, p_limit, p_offset;
 
   return jsonb_build_object('total', v_total, 'rows', v_rows);
 end;
@@ -531,17 +552,20 @@ as $$
 declare v_uid uuid := coalesce(p_user_id, auth.uid()); v_out jsonb;
 begin
   if v_uid is null then raise exception 'not_authenticated' using errcode = '28000'; end if;
-  if not exists (select 1 from pg_timezone_names where name = p_tz) then raise exception 'invalid_timezone' using errcode = '22023'; end if;
+  if not public._valid_tz(p_tz) then raise exception 'invalid_timezone' using errcode = '22023'; end if;
 
   select jsonb_build_object(
     'overdue',   count(*) filter (where b = 'overdue'),
     'today',     count(*) filter (where b = 'today'),
     'upcoming',  count(*) filter (where b = 'upcoming'),
     'completed', count(*) filter (where b = 'completed'),
-    'dnc',       count(*) filter (where l.status = 'do_not_call'))
+    'dnc',       (select count(*) from public.leads where user_id = v_uid and status = 'do_not_call'))
   into v_out
-  from public.leads l, lateral (select public.lead_callback_bucket(l, p_tz) as b) x
-  where l.user_id = v_uid;
+  from (
+    select public.lead_callback_bucket(l.status, l.callback_at, l.reminder_date, l.reminder_done, p_tz) as b
+    from public.leads l
+    where l.user_id = v_uid and (l.reminder_date is not null or l.callback_at is not null)
+  ) x;
   return v_out;
 end;
 $$;
@@ -549,6 +573,8 @@ $$;
 -- ---------------------------------------------------------------------------
 -- 9. Function privileges: signed-in users only
 -- ---------------------------------------------------------------------------
+revoke all on function public._valid_tz(text) from public, anon;
+revoke all on function public.lead_callback_bucket(text, timestamptz, date, boolean, text) from public, anon;
 revoke all on function public._lead_actor() from public, anon, authenticated;
 revoke all on function public._ensure_lead(bigint, uuid, uuid) from public, anon, authenticated;
 revoke all on function public.set_lead_status(bigint, text, uuid) from public, anon;
@@ -561,6 +587,8 @@ revoke all on function public.clear_lead_contact(bigint, uuid) from public, anon
 revoke all on function public.search_leads(text, text, boolean, boolean, text, boolean, text, integer, integer, text, uuid) from public, anon;
 revoke all on function public.lead_callback_counts(text, uuid) from public, anon;
 
+grant execute on function public._valid_tz(text) to authenticated;
+grant execute on function public.lead_callback_bucket(text, timestamptz, date, boolean, text) to authenticated;
 grant execute on function public.set_lead_status(bigint, text, uuid) to authenticated;
 grant execute on function public.log_lead_call(bigint, uuid, text, text, text) to authenticated;
 grant execute on function public.set_lead_callback(bigint, uuid, timestamptz, text, date, text) to authenticated;

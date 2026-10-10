@@ -25,7 +25,6 @@ export async function POST(request: NextRequest) {
 
   if (typeof body.name !== "string") return badRequest("Enter the contact's name.");
   const name = body.name.trim(); // keep letters, accents, punctuation and non-Latin characters exactly as typed
-  // eslint-disable-next-line no-control-regex
   if (name.length < 1 || name.length > 100 || /[\u0000-\u001F\u007F]/.test(name)) {
     return badRequest("Contact name must be 1 to 100 characters, without control characters.");
   }

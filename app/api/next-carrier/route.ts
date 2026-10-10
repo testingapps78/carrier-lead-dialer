@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { fetchFmcsaBatch, FmcsaRateLimitError, ScanMode, CarrierFilters } from "@/lib/fmcsa";
 import { DO_NOT_CALL_STATUS } from "@/lib/leadApi";
+import { scanForNext } from "@/lib/scanNext";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30; // leaves room for FMCSA retry/backoff
@@ -36,83 +37,55 @@ export async function GET(request: NextRequest) {
     // everything we fetch below for other purposes (leads joins, the Back
     // history), just never read the cache to answer this question.
     const admin = createAdminClient();
-    const cursorOf = (c: { dot_number: number; docket_number?: number | null }) =>
-      mode === "dot" ? c.dot_number : c.docket_number ?? c.dot_number;
 
     // Do Not Call is personal to this agent: one batched lookup per batch (never one per carrier).
     // If it fails we fail the request, so a suppressed lead can never slip through as "unknown".
-    const MAX_EXTRA_BATCHES = 3;
-    let batch = await fetchFmcsaBatch(after, mode, filters, 50);
-    if (batch.length === 0) {
+    const firstBatch = await fetchFmcsaBatch(after, mode, filters, 50);
+    const result = await scanForNext({
+      after,
+      mode,
+      firstBatch,
+      fetchBatch: (cursor) => fetchFmcsaBatch(cursor, mode, filters, 50),
+      isSuppressed: (lead: any) => lead.status === DO_NOT_CALL_STATUS,
+      processBatch: async (batch) => {
+        // Cache write and lead lookup are independent, so they run together (no extra round trip vs. before).
+        const [upsertRes, leadsRes] = await Promise.all([
+          admin.from("carriers").upsert(
+            batch.map((c) => ({ ...c, fetched_at: new Date().toISOString() })),
+            { onConflict: "dot_number" }
+          ),
+          supabase.from("leads").select("*").eq("user_id", user.id).in("dot_number", batch.map((c) => c.dot_number)),
+        ]);
+        if (upsertRes.error) throw upsertRes.error;
+        if (leadsRes.error) throw leadsRes.error;
+        return new Map((leadsRes.data ?? []).map((l: any) => [l.dot_number, l]));
+      },
+    });
+
+    if (result.kind === "none") {
+      return NextResponse.json({ carrier: null, source: "fmcsa", message: "No more active carriers match these filters." });
+    }
+    if (result.kind === "continue") {
+      // Everything scanned so far is on this agent's Do Not Call list. Say so honestly and hand back the
+      // cursor so the next press continues from here (this is not "no more carriers").
       return NextResponse.json({
         carrier: null,
         source: "fmcsa",
-        message: "No more active carriers match these filters.",
+        continuation: {
+          cursor: result.cursor,
+          skipped: result.skipped,
+          message: `The last ${result.skipped} carriers in this range are all on your Do Not Call list. Press Next to keep scanning.`,
+        },
       });
     }
-
-    let chosen: (typeof batch)[number] | null = null;
-    let ownLead: any = null;
-    let skipped = 0;
-    let lastCursor = after;
-
-    for (let round = 0; ; round++) {
-      const [upsertRes, leadsRes] = await Promise.all([
-        admin.from("carriers").upsert(
-          batch.map((c) => ({ ...c, fetched_at: new Date().toISOString() })),
-          { onConflict: "dot_number" }
-        ),
-        supabase
-          .from("leads")
-          .select("*")
-          .eq("user_id", user.id)
-          .in("dot_number", batch.map((c) => c.dot_number)),
-      ]);
-      if (upsertRes.error) throw upsertRes.error;
-      if (leadsRes.error) throw leadsRes.error;
-
-      const leadByDot = new Map((leadsRes.data ?? []).map((l: any) => [l.dot_number, l]));
-      for (const c of batch) {
-        const lead = leadByDot.get(c.dot_number) ?? null;
-        if (lead?.status === DO_NOT_CALL_STATUS) {
-          skipped += 1;
-          continue;
-        }
-        chosen = c;
-        ownLead = lead;
-        break;
-      }
-      lastCursor = cursorOf(batch[batch.length - 1]);
-      if (chosen) break;
-
-      if (round >= MAX_EXTRA_BATCHES) {
-        // Everything scanned so far is on this agent's Do Not Call list. Say so honestly and
-        // hand back the cursor so the next press continues from here (this is not "no more carriers").
-        return NextResponse.json({
-          carrier: null,
-          source: "fmcsa",
-          continuation: {
-            cursor: lastCursor,
-            skipped,
-            message: `The last ${skipped} carriers in this range are all on your Do Not Call list. Press Next to keep scanning.`,
-          },
-        });
-      }
-      batch = await fetchFmcsaBatch(lastCursor, mode, filters, 50);
-      if (batch.length === 0) {
-        return NextResponse.json({
-          carrier: null,
-          source: "fmcsa",
-          message: "No more active carriers match these filters.",
-        });
-      }
-    }
+    const chosen = result.carrier;
+    const ownLead = result.lead;
 
     // Re-read the chosen carrier so cached enrichment (owner details etc.) is merged in, as before.
     const { data: freshCarrier, error: freshError } = await supabase
       .from("carriers")
       .select("*")
-      .eq("dot_number", chosen!.dot_number)
+      .eq("dot_number", chosen.dot_number)
       .single();
     if (freshError) throw freshError;
 

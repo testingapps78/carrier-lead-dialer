@@ -350,7 +350,7 @@ export function CallbackSection({
   onOpenChange: (v: boolean) => void;
   onSaved?: () => void;
 }) {
-  const viewerTz = useRef(browserTimeZone()).current;
+  const [viewerTz] = useState(() => browserTimeZone());
   const dnc = lead?.status === "do_not_call";
 
   const [date, setDate] = useState("");
