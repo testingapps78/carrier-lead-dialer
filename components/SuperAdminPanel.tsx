@@ -78,21 +78,21 @@ export default function SuperAdminPanel() {
       {showForm && (
         <form onSubmit={handleCreate} className="bg-surface border border-border rounded-xl p-4 mb-5 space-y-3">
           <div>
-            <label className="block text-[11px] uppercase tracking-wide text-muted mb-1">Company name</label>
+            <label className="block text-xs uppercase tracking-wide text-muted mb-1">Company name</label>
             <input value={orgName} onChange={(e) => setOrgName(e.target.value)} required className="w-full bg-surface2 border border-border rounded-lg px-3 py-2 text-ink focus:border-accent outline-none" />
           </div>
           <div className="grid sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-[11px] uppercase tracking-wide text-muted mb-1">Their admin's name</label>
+              <label className="block text-xs uppercase tracking-wide text-muted mb-1">Their admin's name</label>
               <input value={fullName} onChange={(e) => setFullName(e.target.value)} required className="w-full bg-surface2 border border-border rounded-lg px-3 py-2 text-ink focus:border-accent outline-none" />
             </div>
             <div>
-              <label className="block text-[11px] uppercase tracking-wide text-muted mb-1">Their email</label>
+              <label className="block text-xs uppercase tracking-wide text-muted mb-1">Their email</label>
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="w-full bg-surface2 border border-border rounded-lg px-3 py-2 text-ink focus:border-accent outline-none" />
             </div>
           </div>
           <div>
-            <label className="block text-[11px] uppercase tracking-wide text-muted mb-1">Temporary password</label>
+            <label className="block text-xs uppercase tracking-wide text-muted mb-1">Temporary password</label>
             <input value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} className="w-full bg-surface2 border border-border rounded-lg px-3 py-2 text-ink focus:border-accent outline-none" />
           </div>
           <button type="submit" disabled={submitting} className="bg-accent text-oncolor font-semibold rounded-lg px-4 py-2 text-sm disabled:opacity-50">

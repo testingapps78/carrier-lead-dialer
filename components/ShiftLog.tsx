@@ -82,11 +82,11 @@ export default function ShiftLog() {
         </div>
         <div className="grid grid-cols-2 gap-3 mt-5 pt-5 border-t border-border">
           <div>
-            <div className="text-[11px] uppercase tracking-wide text-muted mb-1">Viewed today</div>
+            <div className="text-xs uppercase tracking-wide text-muted mb-1">Viewed today</div>
             <div className="text-xl font-display font-semibold">{todayTotal}</div>
           </div>
           <div>
-            <div className="text-[11px] uppercase tracking-wide text-muted mb-1">This shift</div>
+            <div className="text-xs uppercase tracking-wide text-muted mb-1">This shift</div>
             <div className="text-xl font-display font-semibold">{open?.carriers_logged ?? 0} logged</div>
           </div>
         </div>
@@ -96,7 +96,7 @@ export default function ShiftLog() {
 
       <div className="bg-surface border border-border rounded-xl p-4 mb-4 flex flex-wrap items-end gap-2">
         <div>
-          <label className="block text-[11px] uppercase tracking-wide text-muted mb-1">From</label>
+          <label className="block text-xs uppercase tracking-wide text-muted mb-1">From</label>
           <input
             type="date"
             value={fromDate}
@@ -105,7 +105,7 @@ export default function ShiftLog() {
           />
         </div>
         <div>
-          <label className="block text-[11px] uppercase tracking-wide text-muted mb-1">To</label>
+          <label className="block text-xs uppercase tracking-wide text-muted mb-1">To</label>
           <input
             type="date"
             value={toDate}

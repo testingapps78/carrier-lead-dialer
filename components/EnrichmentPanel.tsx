@@ -65,7 +65,7 @@ export default function EnrichmentPanel({
             <div className="space-y-4">
               {auth && (auth.commonAuthority || auth.contractAuthority || auth.brokerAuthority) && (
                 <div>
-                  <div className="text-[11px] uppercase tracking-wide text-muted mb-2 flex items-center gap-1">
+                  <div className="text-xs uppercase tracking-wide text-muted mb-2 flex items-center gap-1">
                     <ShieldCheck size={12} /> Authority & insurance on file
                   </div>
                   <div className="grid grid-cols-3 gap-2 text-xs">
@@ -98,7 +98,7 @@ export default function EnrichmentPanel({
               )}
               {details.officials?.length > 0 && (
                 <div>
-                  <div className="text-[11px] uppercase tracking-wide text-muted mb-2">Company officials</div>
+                  <div className="text-xs uppercase tracking-wide text-muted mb-2">Company officials</div>
                   <div className="space-y-2">
                     {details.officials.map((o, i) => (
                       <div key={i} className="flex items-start gap-2 text-sm">
@@ -132,26 +132,26 @@ export default function EnrichmentPanel({
               <div className="grid grid-cols-2 gap-3 text-sm">
                 {details.formOfBusiness && (
                   <div>
-                    <div className="text-[11px] uppercase tracking-wide text-muted">Form of business</div>
+                    <div className="text-xs uppercase tracking-wide text-muted">Form of business</div>
                     {details.formOfBusiness}
                   </div>
                 )}
                 {details.stateIncorporated && (
                   <div>
-                    <div className="text-[11px] uppercase tracking-wide text-muted">Incorporated in</div>
+                    <div className="text-xs uppercase tracking-wide text-muted">Incorporated in</div>
                     {details.stateIncorporated}
                   </div>
                 )}
                 {details.dunsBradstreet && (
                   <div>
-                    <div className="text-[11px] uppercase tracking-wide text-muted">D&B number</div>
+                    <div className="text-xs uppercase tracking-wide text-muted">D&B number</div>
                     {details.dunsBradstreet}
                   </div>
                 )}
               </div>
               {details.vehicles?.length > 0 && (
                 <div>
-                  <div className="text-[11px] uppercase tracking-wide text-muted mb-1">Vehicles</div>
+                  <div className="text-xs uppercase tracking-wide text-muted mb-1">Vehicles</div>
                   <div className="text-sm space-y-0.5">
                     {details.vehicles.map((v, i) => (
                       <div key={i}>
@@ -163,7 +163,7 @@ export default function EnrichmentPanel({
               )}
               {details.cargoClasses?.length > 0 && (
                 <div>
-                  <div className="text-[11px] uppercase tracking-wide text-muted mb-1">Cargo</div>
+                  <div className="text-xs uppercase tracking-wide text-muted mb-1">Cargo</div>
                   <div className="text-sm">{details.cargoClasses.join(", ")}</div>
                 </div>
               )}

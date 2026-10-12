@@ -91,7 +91,7 @@ export default function TrialDial() {
   if (limitReached) {
     return (
       <div className="max-w-lg mx-auto px-4 py-16 text-center">
-        <div className="mile-marker inline-block border-2 border-accent text-accent px-3 py-1 text-sm font-semibold tracking-widest rounded-lg glow-accent mb-6">
+        <div className="mile-marker inline-block border-2 border-accent text-accent-ink px-3 py-1 text-sm font-semibold tracking-widest rounded-lg glow-accent mb-6">
           TRIAL COMPLETE
         </div>
         <h2 className="font-display text-2xl font-semibold mb-3">You've used all 10 free lookups</h2>
@@ -112,7 +112,7 @@ export default function TrialDial() {
   return (
     <div className="max-w-3xl mx-auto px-4 pt-8 pb-16">
       <div className="text-center mb-6">
-        <div className="mile-marker inline-block border-2 border-accent text-accent px-3 py-1 text-sm font-semibold tracking-widest rounded-lg mb-4">
+        <div className="mile-marker inline-block border-2 border-accent text-accent-ink px-3 py-1 text-sm font-semibold tracking-widest rounded-lg mb-4">
           FREE TRIAL
         </div>
         <h1 className="font-display text-3xl font-semibold tracking-tight">Carrier Dialer</h1>
@@ -121,20 +121,20 @@ export default function TrialDial() {
         </p>
         <div className="max-w-md mx-auto mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-left">
           <div className="bg-surface border border-border rounded-lg p-3">
-            <span className="text-accent font-semibold block mb-0.5">No dead ends</span>
+            <span className="text-accent-ink font-semibold block mb-0.5">No dead ends</span>
             Inactive MC numbers skip themselves. Stop clicking into companies that can't take your call.
           </div>
           <div className="bg-surface border border-border rounded-lg p-3">
-            <span className="text-accent font-semibold block mb-0.5">Know who to ask for</span>
+            <span className="text-accent-ink font-semibold block mb-0.5">Know who to ask for</span>
             Owner name and direct email, not just a front-desk number.
           </div>
           <div className="bg-surface border border-border rounded-lg p-3">
-            <span className="text-accent font-semibold block mb-0.5">One screen, not five tabs</span>
+            <span className="text-accent-ink font-semibold block mb-0.5">One screen, not five tabs</span>
             Authority, insurance, and fleet size together — no more cross-checking SAFER and Motus separately.
           </div>
         </div>
         {remaining !== null && (
-          <p className="text-xs text-accent mt-4">{remaining} of {TRIAL_LIMIT} free lookups left</p>
+          <p className="text-xs text-accent-ink mt-4">{remaining} of {TRIAL_LIMIT} free lookups left</p>
         )}
       </div>
 
@@ -148,7 +148,7 @@ export default function TrialDial() {
           </button>
         </div>
         <div>
-          <label className="block text-[11px] uppercase tracking-wide text-muted mb-1">Starting {mode === "mc" ? "MC" : "DOT"} #</label>
+          <label className="block text-xs uppercase tracking-wide text-muted mb-1">Starting {mode === "mc" ? "MC" : "DOT"} #</label>
           <input
             value={startInput}
             onChange={(e) => setStartInput(e.target.value)}
@@ -158,14 +158,14 @@ export default function TrialDial() {
           />
         </div>
         <div>
-          <label className="block text-[11px] uppercase tracking-wide text-muted mb-1">State</label>
+          <label className="block text-xs uppercase tracking-wide text-muted mb-1">State</label>
           <select value={state} onChange={(e) => setState(e.target.value)} className="bg-surface2 border border-border rounded-lg px-3 py-2.5 text-ink focus:border-accent outline-none">
             <option value="">Any</option>
             {US_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
         </div>
         <div>
-          <label className="block text-[11px] uppercase tracking-wide text-muted mb-1">Power units</label>
+          <label className="block text-xs uppercase tracking-wide text-muted mb-1">Power units</label>
           <div className="flex items-center gap-1.5">
             <input value={minPU} onChange={(e) => setMinPU(e.target.value)} className="w-14 bg-surface2 border border-border rounded-lg px-2 py-2.5 text-ink focus:border-accent outline-none" inputMode="numeric" />
             <span className="text-muted">–</span>
@@ -205,7 +205,7 @@ export default function TrialDial() {
         <div key={current.dot_number} className="bg-surface elevated border border-border/60 rounded-2xl p-6 animate-fade-in">
           <div className="flex flex-wrap items-center gap-2 mb-4">
             {current.docket_prefix && current.docket_number && (
-              <span className="mile-marker text-sm border border-accent text-accent px-2.5 py-1 rounded-lg">
+              <span className="mile-marker text-sm border border-accent text-accent-ink px-2.5 py-1 rounded-lg">
                 {current.docket_prefix}-{current.docket_number}
               </span>
             )}
@@ -219,7 +219,7 @@ export default function TrialDial() {
             <div className="flex gap-3">
               <Phone size={16} className="text-muted mt-0.5 shrink-0" />
               <div>
-                <div className="text-[11px] uppercase tracking-wide text-muted mb-1">Phone</div>
+                <div className="text-xs uppercase tracking-wide text-muted mb-1">Phone</div>
                 {phone ? (
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="mile-marker text-lg">{phone}</span>
@@ -232,14 +232,14 @@ export default function TrialDial() {
             <div className="flex gap-3">
               <MapPin size={16} className="text-muted mt-0.5 shrink-0" />
               <div>
-                <div className="text-[11px] uppercase tracking-wide text-muted mb-1">Location</div>
+                <div className="text-xs uppercase tracking-wide text-muted mb-1">Location</div>
                 <div className="text-sm">{[current.phy_city, current.phy_state, current.phy_zip].filter(Boolean).join(", ") || "—"}</div>
               </div>
             </div>
             <div className="flex gap-3">
               <Truck size={16} className="text-muted mt-0.5 shrink-0" />
               <div>
-                <div className="text-[11px] uppercase tracking-wide text-muted mb-1">Fleet</div>
+                <div className="text-xs uppercase tracking-wide text-muted mb-1">Fleet</div>
                 <div className="text-sm">{current.power_units ?? "?"} power units · {current.total_drivers ?? "?"} drivers</div>
               </div>
             </div>

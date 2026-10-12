@@ -22,7 +22,7 @@ const TASK_LABEL: Record<Task, string> = {
 };
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
-  return <div className="text-[11px] uppercase tracking-wide text-muted mb-1">{children}</div>;
+  return <div className="text-xs uppercase tracking-wide text-muted mb-1">{children}</div>;
 }
 
 export default function AIPanel({
@@ -147,7 +147,7 @@ export default function AIPanel({
   return (
     <div className="bg-surface border border-border rounded-2xl p-3">
       <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-accent">
+        <div className="flex items-center gap-1.5 text-xs uppercase tracking-wide text-accent-ink">
           <Sparkles size={12} /> AI helper
         </div>
         <button
@@ -216,7 +216,7 @@ export default function AIPanel({
             onClick={() => run(t)}
             disabled={loading !== null}
             className={`text-xs px-2.5 py-1.5 rounded-lg border transition-colors min-h-[32px] disabled:opacity-60 ${
-              task === t ? "border-accent text-accent bg-accent/10" : "border-border text-ink hover:border-accent"
+              task === t ? "border-accent text-accent-ink bg-accent/10" : "border-border text-ink hover:border-accent"
             }`}
           >
             {loading === t ? (
@@ -302,7 +302,7 @@ export default function AIPanel({
             <button
               type="button"
               onClick={() => onApplyNotes(notesText(result))}
-              className="text-sm px-3 py-2 rounded-lg border border-accent/50 text-accent hover:bg-accent/10"
+              className="text-sm px-3 py-2 rounded-lg border border-accent/50 text-accent-ink hover:bg-accent/10"
             >
               Replace my notes with this
             </button>
@@ -362,7 +362,7 @@ export default function AIPanel({
                 <button
                   type="button"
                   onClick={() => setRating(1)}
-                  className={`p-2 rounded-lg border ${rating === 1 ? "border-accent text-accent" : "border-border"}`}
+                  className={`p-2 rounded-lg border ${rating === 1 ? "border-accent text-accent-ink" : "border-border"}`}
                   aria-label="Useful"
                 >
                   <ThumbsUp size={14} />

@@ -128,7 +128,7 @@ export default function TeamFeed({ isAdmin, userId }: { isAdmin: boolean; userId
             }`}
           >
             <div className="flex items-start gap-2">
-              {post.is_broadcast && <Megaphone size={14} className="text-accent mt-0.5 shrink-0" />}
+              {post.is_broadcast && <Megaphone size={14} className="text-accent-ink mt-0.5 shrink-0" />}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 text-xs text-muted mb-1">
                   <span className="font-medium text-ink">{post.profiles?.full_name || "Someone"}</span>

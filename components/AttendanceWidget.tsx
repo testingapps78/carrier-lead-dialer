@@ -7,7 +7,7 @@ import type { EventType, LiveStatus, ShiftSummary, ShiftType } from "@/lib/atten
 
 const ACTION_CONFIG: Record<EventType, { label: string; icon: any; className: string }> = {
   CHECK_IN: { label: "Check in", icon: Play, className: "bg-good text-oncolor" },
-  BREAK_OUT: { label: "Start break", icon: Coffee, className: "bg-accent/15 text-accent border border-accent/30" },
+  BREAK_OUT: { label: "Start break", icon: Coffee, className: "bg-accent/15 text-accent-ink border border-accent/30" },
   BREAK_IN: { label: "End break", icon: Play, className: "bg-good text-oncolor" },
   CHECK_OUT: { label: "Check out", icon: Square, className: "bg-bad/15 text-bad border border-bad/30" },
 };
@@ -15,7 +15,7 @@ const ACTION_CONFIG: Record<EventType, { label: string; icon: any; className: st
 const STATUS_META: Record<LiveStatus, { label: string; className: string }> = {
   NOT_CHECKED_IN: { label: "NOT CHECKED IN", className: "bg-slate/20 text-muted border-slate/40" },
   WORKING: { label: "WORKING", className: "bg-good/15 text-good border-good/40" },
-  ON_BREAK: { label: "ON BREAK", className: "bg-accent/15 text-accent border-accent/40" },
+  ON_BREAK: { label: "ON BREAK", className: "bg-accent/15 text-accent-ink border-accent/40" },
   CHECKED_OUT: { label: "CHECKED OUT", className: "bg-slate/20 text-muted border-slate/40" },
   MISSING_CHECKOUT: { label: "NEEDS REVIEW", className: "bg-bad/15 text-bad border-bad/40" },
 };
@@ -104,7 +104,7 @@ export default function AttendanceWidget() {
       <div className="bg-surface elevated border border-border/60 rounded-2xl p-6 mb-6">
         <div className="flex items-center justify-between mb-4">
           <span
-            className={`text-[11px] font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full border ${meta.className}`}
+            className={`text-xs font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full border ${meta.className}`}
           >
             {meta.label}
           </span>
@@ -130,7 +130,7 @@ export default function AttendanceWidget() {
               <div className="text-xs text-bad font-medium mb-1">{summary.lateMinutes}m late</div>
             )}
             {!!summary?.overtimeMinutes && summary.overtimeMinutes > 0 && (
-              <div className="text-xs text-accent font-medium">{formatMinutes(summary.overtimeMinutes)} OT</div>
+              <div className="text-xs text-accent-ink font-medium">{formatMinutes(summary.overtimeMinutes)} OT</div>
             )}
           </div>
         </div>

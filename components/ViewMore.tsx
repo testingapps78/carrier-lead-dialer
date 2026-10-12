@@ -34,7 +34,7 @@ export default function ViewMore({ children }: { children: React.ReactNode }) {
       <button
         type="button"
         onClick={toggle}
-        className="flex items-center gap-1 text-xs font-medium text-accent hover:text-accent/80 py-1"
+        className="flex items-center gap-1 text-xs font-medium text-accent-ink hover:text-accent-ink/80 py-1"
         aria-expanded={open}
       >
         <ChevronDown size={14} className={`transition-transform ${open ? "rotate-180" : ""}`} />

@@ -21,7 +21,7 @@ function formatClock(iso: string | null): string {
 const STATUS_META: Record<string, { label: string; className: string }> = {
   NOT_CHECKED_IN: { label: "Not checked in", className: "bg-slate/20 text-muted border-slate/40" },
   WORKING: { label: "Working", className: "bg-good/15 text-good border-good/40" },
-  ON_BREAK: { label: "On break", className: "bg-accent/15 text-accent border-accent/40" },
+  ON_BREAK: { label: "On break", className: "bg-accent/15 text-accent-ink border-accent/40" },
   CHECKED_OUT: { label: "Checked out", className: "bg-slate/20 text-muted border-slate/40" },
   MISSING_CHECKOUT: { label: "Needs review", className: "bg-bad/15 text-bad border-bad/40" },
 };
@@ -87,7 +87,7 @@ function LiveTab() {
         {CARDS.map((c) => (
           <div key={c.key} className="bg-surface border border-border rounded-xl px-3 py-2.5">
             <div className="text-lg font-display font-semibold">{counts?.[c.key] ?? 0}</div>
-            <div className="text-[11px] text-muted">{c.label}</div>
+            <div className="text-xs text-muted">{c.label}</div>
           </div>
         ))}
       </div>
@@ -102,7 +102,7 @@ function LiveTab() {
                   <div className="text-sm font-medium text-ink">{r.name}</div>
                   <div className="text-xs text-muted mt-0.5 flex items-center gap-2 flex-wrap">
                     <span
-                      className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] font-medium ${meta.className}`}
+                      className={`inline-flex items-center px-2 py-0.5 rounded-full border text-xs font-medium ${meta.className}`}
                     >
                       {meta.label}
                     </span>
@@ -110,7 +110,7 @@ function LiveTab() {
                     {r.summary.netMinutes != null && <span>· {formatMinutes(r.summary.netMinutes)}</span>}
                     {r.summary.lateMinutes > 0 && <span className="text-bad">· {r.summary.lateMinutes}m late</span>}
                     {r.summary.overtimeMinutes > 0 && (
-                      <span className="text-accent">· {formatMinutes(r.summary.overtimeMinutes)} OT</span>
+                      <span className="text-accent-ink">· {formatMinutes(r.summary.overtimeMinutes)} OT</span>
                     )}
                   </div>
                 </div>
@@ -184,7 +184,7 @@ function CorrectionModal({ row, onClose, onDone }: { row: LiveRow; onClose: () =
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-4" onClick={onClose}>
+    <div className="fixed inset-0 bg-scrim/50 flex items-end sm:items-center justify-center z-50 p-4" onClick={onClose}>
       <div
         className="bg-surface elevated border border-border rounded-2xl p-5 w-full max-w-md"
         onClick={(e) => e.stopPropagation()}
@@ -314,11 +314,11 @@ function ShiftsTab() {
                 <div className="text-sm font-medium text-ink flex items-center gap-2">
                   {s.name}
                   {s.is_default && (
-                    <span className="text-[10px] uppercase tracking-wide bg-accent/15 text-accent border border-accent/30 rounded-full px-1.5 py-0.5">
+                    <span className="text-xs uppercase tracking-wide bg-accent/15 text-accent-ink border border-accent/30 rounded-full px-1.5 py-0.5">
                       Default
                     </span>
                   )}
-                  {!s.is_active && <span className="text-[10px] text-muted">(inactive)</span>}
+                  {!s.is_active && <span className="text-xs text-muted">(inactive)</span>}
                 </div>
                 <div className="text-xs text-muted mt-0.5">
                   {s.start_time.slice(0, 5)}–{s.end_time.slice(0, 5)} · {s.grace_minutes}m grace ·{" "}

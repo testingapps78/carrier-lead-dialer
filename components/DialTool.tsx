@@ -365,7 +365,7 @@ export default function DialTool({ userId }: { userId: string }) {
   const cell = formatPhone(current?.cell_phone ?? null);
 
   const inputCls = "bg-surface2 border border-border rounded-lg px-2.5 py-1.5 text-sm text-ink focus:border-accent outline-none";
-  const labelCls = "block text-[10px] uppercase tracking-wide text-muted mb-0.5";
+  const labelCls = "block text-xs uppercase tracking-wide text-muted mb-0.5";
 
   return (
     <div className="max-w-[1500px] mx-auto px-4 lg:px-6 pt-3 pb-20">
@@ -450,11 +450,11 @@ export default function DialTool({ userId }: { userId: string }) {
       )}
 
       {notice && (
-        <div className="bg-accent/10 border border-accent/40 text-accent text-sm rounded-xl px-4 py-2 mb-3">{notice}</div>
+        <div className="bg-accent/10 border border-accent/40 text-accent-ink text-sm rounded-xl px-4 py-2 mb-3">{notice}</div>
       )}
 
       {continuation && (
-        <div className="flex items-center gap-3 flex-wrap bg-accent/10 border border-accent/40 text-accent text-sm rounded-xl px-4 py-2 mb-3">
+        <div className="flex items-center gap-3 flex-wrap bg-accent/10 border border-accent/40 text-accent-ink text-sm rounded-xl px-4 py-2 mb-3">
           <span>{continuation}</span>
           {!current && (
             <button type="button" onClick={handleNext} disabled={loading} className="bg-accent text-oncolor font-semibold rounded-lg px-3 py-1.5 disabled:opacity-50">
@@ -499,7 +499,7 @@ export default function DialTool({ userId }: { userId: string }) {
           <section className="lg:col-span-7 bg-surface elevated border border-border/60 rounded-2xl p-4">
             <div className="flex flex-wrap items-center gap-2 mb-2">
               {current.docket_prefix && current.docket_number && (
-                <span className="flex items-center gap-1 mile-marker text-sm border border-accent text-accent px-2 py-0.5 rounded-lg">
+                <span className="flex items-center gap-1 mile-marker text-sm border border-accent text-accent-ink px-2 py-0.5 rounded-lg">
                   {current.docket_prefix}-{current.docket_number}
                   <CopyButton value={String(current.docket_number)} label="" />
                 </span>
@@ -520,14 +520,14 @@ export default function DialTool({ userId }: { userId: string }) {
             </h2>
 
             {(current.company_rep1 || current.company_rep2) && (
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-0.5 mt-1 text-accent">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-0.5 mt-1 text-accent-ink">
                 {current.company_rep1 && (
                   <span className="flex items-center gap-1.5 text-sm font-semibold">
                     <User size={14} className="shrink-0" /> {current.company_rep1}
                   </span>
                 )}
                 {current.company_rep2 && (
-                  <span className="flex items-center gap-1.5 text-xs font-medium text-accent/80">
+                  <span className="flex items-center gap-1.5 text-xs font-medium text-accent-ink/80">
                     <User size={12} className="shrink-0" /> {current.company_rep2}
                   </span>
                 )}
@@ -624,7 +624,7 @@ export default function DialTool({ userId }: { userId: string }) {
             />
 
             <div className="bg-surface border border-border rounded-2xl p-4">
-              <div className="text-[10px] uppercase tracking-wide text-muted mb-2">Call status</div>
+              <div className="text-xs uppercase tracking-wide text-muted mb-2">Call status</div>
               <div className="flex flex-wrap gap-1.5">
                 {statuses.map((opt) => (
                   <button
@@ -640,7 +640,7 @@ export default function DialTool({ userId }: { userId: string }) {
                 <button
                   onClick={() => void leadEdit({ priority: !lead?.priority })}
                   className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border transition-colors ${
-                    lead?.priority ? "bg-accent/20 text-accent border-accent" : "text-muted border-border hover:text-ink"
+                    lead?.priority ? "bg-accent/20 text-accent-ink border-accent" : "text-muted border-border hover:text-ink"
                   }`}
                 >
                   <Star size={12} fill={lead?.priority ? "currentColor" : "none"} />
@@ -650,7 +650,7 @@ export default function DialTool({ userId }: { userId: string }) {
                   onClick={toggleSaved}
                   disabled={savingLead}
                   className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border transition-colors disabled:opacity-60 ${
-                    lead?.saved ? "bg-accent/20 text-accent border-accent" : "text-muted border-border hover:text-ink"
+                    lead?.saved ? "bg-accent/20 text-accent-ink border-accent" : "text-muted border-border hover:text-ink"
                   }`}
                   title="Save this MC to export later"
                 >
@@ -683,7 +683,7 @@ export default function DialTool({ userId }: { userId: string }) {
                   <button
                     type="button"
                     onClick={() => setPanel((p) => (p === "log" ? "none" : "log"))}
-                    className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border transition-colors ${panel === "log" ? "border-accent text-accent bg-accent/10" : "border-border text-muted hover:text-ink"}`}
+                    className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border transition-colors ${panel === "log" ? "border-accent text-accent-ink bg-accent/10" : "border-border text-muted hover:text-ink"}`}
                   >
                     <PhoneCall size={12} /> Log call
                   </button>
@@ -692,7 +692,7 @@ export default function DialTool({ userId }: { userId: string }) {
                   <button
                     type="button"
                     onClick={() => setPanel((p) => (p === "callback" ? "none" : "callback"))}
-                    className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border transition-colors ${panel === "callback" ? "border-accent text-accent bg-accent/10" : "border-border text-muted hover:text-ink"}`}
+                    className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border transition-colors ${panel === "callback" ? "border-accent text-accent-ink bg-accent/10" : "border-border text-muted hover:text-ink"}`}
                   >
                     <Bell size={12} /> Callback
                   </button>
@@ -700,7 +700,7 @@ export default function DialTool({ userId }: { userId: string }) {
                 <button
                   type="button"
                   onClick={() => setPanel((p) => (p === "history" ? "none" : "history"))}
-                  className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border transition-colors ${panel === "history" ? "border-accent text-accent bg-accent/10" : "border-border text-muted hover:text-ink"}`}
+                  className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border transition-colors ${panel === "history" ? "border-accent text-accent-ink bg-accent/10" : "border-border text-muted hover:text-ink"}`}
                 >
                   <HistoryIcon size={12} /> History
                 </button>

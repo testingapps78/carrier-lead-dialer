@@ -8,7 +8,7 @@ import { formatDuration } from "@/lib/types";
 
 const ACTION_CONFIG: Record<EventType, { label: string; icon: any; className: string }> = {
   CHECK_IN: { label: "Check in", icon: Play, className: "bg-good/15 text-good border border-good/30" },
-  BREAK_OUT: { label: "Break", icon: Coffee, className: "bg-accent/15 text-accent border border-accent/30" },
+  BREAK_OUT: { label: "Break", icon: Coffee, className: "bg-accent/15 text-accent-ink border border-accent/30" },
   BREAK_IN: { label: "Resume", icon: Play, className: "bg-good/15 text-good border border-good/30" },
   CHECK_OUT: { label: "Check out", icon: Square, className: "bg-bad/15 text-bad border border-bad/30" },
 };

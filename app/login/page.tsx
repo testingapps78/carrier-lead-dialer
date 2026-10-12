@@ -43,7 +43,7 @@ function LoginForm() {
       </div>
       <div className="w-full max-w-sm animate-fade-in">
         <div className="mb-8 text-center">
-          <div className="mile-marker inline-block border-2 border-accent text-accent px-3 py-1 text-sm font-semibold tracking-widest rounded-lg glow-accent">
+          <div className="mile-marker inline-block border-2 border-accent text-accent-ink px-3 py-1 text-sm font-semibold tracking-widest rounded-lg glow-accent">
             DISPATCH
           </div>
           <h1 className="font-display text-3xl font-semibold mt-5 tracking-tight">
@@ -90,7 +90,7 @@ function LoginForm() {
         </form>
         <p className="text-muted text-xs text-center mt-5">
           No account yet? Ask your admin to add you from the Admin panel, or{" "}
-          <a href="/trial" className="text-accent hover:underline">
+          <a href="/trial" className="text-accent-ink hover:underline">
             try it free
           </a>
           .
@@ -102,7 +102,7 @@ function LoginForm() {
             Developed by Shah Zaib Ali ·{" "}
             <a
               href="mailto:mr.shahzaibali@yahoo.com"
-              className="text-muted hover:text-accent underline underline-offset-2 transition-colors"
+              className="text-muted hover:text-accent-ink underline underline-offset-2 transition-colors"
             >
               mr.shahzaibali@yahoo.com
             </a>

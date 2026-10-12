@@ -7,9 +7,10 @@ import { usePathname, useRouter } from "next/navigation";
 import { Phone, ListChecks, Clock, Settings, LogOut, Users, UserCircle, Coffee } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import ThemeToggle from "@/components/ThemeToggle";
+import Logo from "@/components/Logo";
 
-export default function Nav({ isAdmin, wide = false }: { isAdmin: boolean; wide?: boolean }) {
-  const width = wide ? "max-w-[1500px]" : "max-w-3xl";
+// `wide` is accepted for compatibility with existing pages; every page is now full width.
+export default function Nav({ isAdmin }: { isAdmin: boolean; wide?: boolean }) {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
@@ -44,41 +45,63 @@ export default function Nav({ isAdmin, wide = false }: { isAdmin: boolean; wide?
 
   return (
     <>
-      {/* Slim top bar — identity + sign out, no nav links here anymore */}
-      <header className="sticky top-0 z-30 border-b border-border/60 bg-canvas/85 backdrop-blur-md">
-        <div className={`${width} mx-auto px-4 lg:px-6 h-12 flex items-center justify-between`}>
-          <div className="flex items-center gap-2">
-            <img src="/logo-mark.png" alt="" className="h-5 w-auto opacity-90" />
-            <span className="font-display font-semibold tracking-wide text-accent text-xs uppercase">
+      {/* Top bar: logo, main navigation (desktop and tablet), theme, account, sign out. Full width, 24px side padding. */}
+      <header className="sticky top-0 z-30 border-b border-border bg-bg">
+        <div className="flex h-14 items-center gap-6 px-6">
+          <div className="flex items-center gap-2 shrink-0">
+            <Logo variant="mark" className="h-7 w-auto" />
+            <span className="font-display font-semibold tracking-wide text-accent-ink text-xs uppercase">
               Carrier Dialer
             </span>
           </div>
-          <div className="flex items-center gap-1">
+
+          <nav aria-label="Main" className="hidden md:flex items-center gap-1 flex-1 min-w-0">
+            {tabs.map((tab) => {
+              const active = pathname === tab.href;
+              const Icon = tab.icon;
+              return (
+                <Link
+                  key={tab.href}
+                  href={tab.href}
+                  aria-current={active ? "page" : undefined}
+                  className={`inline-flex h-10 items-center gap-2 rounded-xl px-3 text-sm font-medium transition-colors ${
+                    active ? "bg-accent/15 text-accent-ink" : "text-muted hover:bg-inset hover:text-ink"
+                  }`}
+                >
+                  <Icon size={16} strokeWidth={active ? 2.4 : 1.9} />
+                  {tab.label}
+                </Link>
+              );
+            })}
+          </nav>
+
+          <div className="ml-auto flex items-center gap-1 shrink-0">
             <ThemeToggle />
             <Link
               href="/account"
               aria-label="Account settings"
-              className="text-muted hover:text-ink transition-colors p-1.5 rounded-full hover:bg-surface2"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-muted hover:text-ink hover:bg-inset transition-colors"
             >
-              <UserCircle size={16} strokeWidth={2} />
+              <UserCircle size={18} strokeWidth={2} />
             </Link>
             <button
               onClick={signOut}
               aria-label="Sign out"
-              className="text-muted hover:text-ink transition-colors p-1.5 rounded-full hover:bg-surface2"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-muted hover:text-ink hover:bg-inset transition-colors"
             >
-              <LogOut size={16} strokeWidth={2} />
+              <LogOut size={18} strokeWidth={2} />
             </button>
           </div>
         </div>
       </header>
 
-      {/* Bottom tab bar — the primary navigation, thumb-reachable on a phone */}
+      {/* Bottom tab bar: phones only (thumb-reachable). On larger screens the tabs live in the top bar. */}
       <nav
-        className="fixed bottom-0 left-0 right-0 z-30 border-t border-border/60 bg-surface/95 backdrop-blur-md"
+        aria-label="Main"
+        className="md:hidden fixed bottom-0 left-0 right-0 z-30 border-t border-border bg-card"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
-        <div className={`${width} mx-auto grid`} style={{ gridTemplateColumns: `repeat(${tabs.length}, 1fr)` }}>
+        <div className="grid" style={{ gridTemplateColumns: `repeat(${tabs.length}, 1fr)` }}>
           {tabs.map((tab) => {
             const active = pathname === tab.href;
             const Icon = tab.icon;
@@ -86,19 +109,12 @@ export default function Nav({ isAdmin, wide = false }: { isAdmin: boolean; wide?
               <Link
                 key={tab.href}
                 href={tab.href}
+                aria-current={active ? "page" : undefined}
                 className="flex flex-col items-center gap-1 py-2.5 relative"
               >
-                {active && (
-                  <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full bg-accent" />
-                )}
-                <Icon
-                  size={22}
-                  strokeWidth={active ? 2.4 : 1.8}
-                  className={active ? "text-accent" : "text-muted"}
-                />
-                <span className={`text-[11px] ${active ? "text-ink font-medium" : "text-muted"}`}>
-                  {tab.label}
-                </span>
+                {active && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full bg-accent" />}
+                <Icon size={22} strokeWidth={active ? 2.4 : 1.8} className={active ? "text-accent-ink" : "text-muted"} />
+                <span className={`text-xs ${active ? "text-ink font-medium" : "text-muted"}`}>{tab.label}</span>
               </Link>
             );
           })}

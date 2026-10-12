@@ -181,7 +181,7 @@ function TeamActivity() {
       <p className="text-muted text-sm mb-4">Who's online now, and every shift your team has logged.</p>
 
       <div className="mb-4">
-        <div className="text-[11px] uppercase tracking-wide text-muted mb-2">
+        <div className="text-xs uppercase tracking-wide text-muted mb-2">
           Online now ({onlineUsers.length})
         </div>
         {onlineUsers.length === 0 ? (
@@ -199,20 +199,20 @@ function TeamActivity() {
       </div>
 
       <div className="mb-4">
-        <div className="text-[11px] uppercase tracking-wide text-muted mb-2">Export a teammate's data</div>
+        <div className="text-xs uppercase tracking-wide text-muted mb-2">Export a teammate's data</div>
         <div className="flex flex-wrap gap-2">
           {users.map((u) => (
             <div key={u.id} className="flex items-center gap-1 bg-surface2 rounded-lg pl-2.5 pr-1 py-1">
               <span className="text-xs">{u.full_name || u.email || "Unnamed"}</span>
               <a
                 href={`/api/export?kind=leads&user_id=${u.id}`}
-                className="text-[10px] text-accent hover:underline px-1.5"
+                className="text-xs text-accent-ink hover:underline px-1.5"
               >
                 leads
               </a>
               <a
                 href={`/api/export?kind=shifts&user_id=${u.id}`}
-                className="text-[10px] text-accent hover:underline px-1.5"
+                className="text-xs text-accent-ink hover:underline px-1.5"
               >
                 shifts
               </a>
@@ -221,7 +221,7 @@ function TeamActivity() {
         </div>
       </div>
 
-      <div className="text-[11px] uppercase tracking-wide text-muted mb-2">Shift history</div>
+      <div className="text-xs uppercase tracking-wide text-muted mb-2">Shift history</div>
       {loading ? (
         <div className="text-muted text-sm py-4">Loading…</div>
       ) : shifts.length === 0 ? (
@@ -463,7 +463,7 @@ export default function AdminPanel({ currentUserId, isSuperAdmin }: { currentUse
         className="flex items-center justify-between bg-surface border border-border rounded-xl px-4 py-3 mb-4 hover:border-accent transition-colors"
       >
         <div className="flex items-center gap-2.5">
-          <Coffee size={16} className="text-accent" />
+          <Coffee size={16} className="text-accent-ink" />
           <div>
             <div className="text-sm font-medium text-ink">Attendance dashboard</div>
             <div className="text-xs text-muted">Live status, shift schedules, corrections</div>
@@ -493,7 +493,7 @@ export default function AdminPanel({ currentUserId, isSuperAdmin }: { currentUse
         <form onSubmit={handleAdd} className="bg-surface border border-border rounded-xl p-4 mb-4 space-y-3">
           <div className="grid sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-[11px] uppercase tracking-wide text-muted mb-1">Full name</label>
+              <label className="block text-xs uppercase tracking-wide text-muted mb-1">Full name</label>
               <input
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
@@ -501,7 +501,7 @@ export default function AdminPanel({ currentUserId, isSuperAdmin }: { currentUse
               />
             </div>
             <div>
-              <label className="block text-[11px] uppercase tracking-wide text-muted mb-1">Email</label>
+              <label className="block text-xs uppercase tracking-wide text-muted mb-1">Email</label>
               <input
                 type="email"
                 required
@@ -512,7 +512,7 @@ export default function AdminPanel({ currentUserId, isSuperAdmin }: { currentUse
             </div>
           </div>
           <div>
-            <label className="block text-[11px] uppercase tracking-wide text-muted mb-1">Temporary password</label>
+            <label className="block text-xs uppercase tracking-wide text-muted mb-1">Temporary password</label>
             <input
               type="text"
               required
@@ -546,7 +546,7 @@ export default function AdminPanel({ currentUserId, isSuperAdmin }: { currentUse
               <button
                 onClick={() => toggleRole(u.id, u.role)}
                 className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full border uppercase transition-colors ${
-                  u.role === "admin" ? "bg-accent/15 text-accent border-accent/40" : "border-border text-muted"
+                  u.role === "admin" ? "bg-accent/15 text-accent-ink border-accent/40" : "border-border text-muted"
                 }`}
               >
                 {u.role === "admin" ? <ShieldCheck size={11} /> : <Shield size={11} />}
@@ -564,7 +564,7 @@ export default function AdminPanel({ currentUserId, isSuperAdmin }: { currentUse
 
       {isSuperAdmin && (
         <div className="mt-8 pt-5 border-t border-border/40 text-center">
-          <a href="/superadmin" className="text-xs text-muted hover:text-accent transition-colors">
+          <a href="/superadmin" className="text-xs text-muted hover:text-accent-ink transition-colors">
             Platform — onboard a new company &rarr;
           </a>
         </div>

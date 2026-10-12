@@ -7,7 +7,7 @@ import { buildOpener, monthYear, operationLabel, registeredSince, safetyLabel, s
 
 export function FactLabel({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-1 text-[10px] uppercase tracking-wide text-muted mb-0.5">
+    <div className="flex items-center gap-1 text-xs uppercase tracking-wide text-muted mb-0.5">
       {icon} {children}
     </div>
   );
@@ -18,9 +18,9 @@ export function OpenerLine({ carrier, confirmedName }: { carrier: Carrier; confi
   const opener = buildOpener(carrier, new Date(), confirmedName);
   return (
     <div className="flex items-center gap-2 bg-surface2 border border-accent/30 rounded-lg pl-3 pr-1.5 py-1.5">
-      <span className="text-[10px] uppercase tracking-wide text-accent shrink-0">Say</span>
+      <span className="text-xs uppercase tracking-wide text-accent-ink shrink-0">Say</span>
       <p className="text-sm leading-snug flex-1 min-w-0">&ldquo;{opener}&rdquo;</p>
-      <span className="text-[10px] text-muted shrink-0 hidden sm:inline">~{spokenSeconds(opener)}s</span>
+      <span className="text-xs text-muted shrink-0 hidden sm:inline">~{spokenSeconds(opener)}s</span>
       <CopyButton value={opener} />
     </div>
   );
@@ -33,7 +33,7 @@ export function BriefFacts({ carrier }: { carrier: Carrier }) {
   const safety = safetyLabel(carrier.safety_rating);
   const operation = operationLabel(carrier);
   const mcs150 = monthYear(carrier.mcs150_date);
-  const toneClass = safety.tone === "good" ? "text-emerald-400" : safety.tone === "bad" ? "text-bad" : "text-ink";
+  const toneClass = safety.tone === "good" ? "text-good" : safety.tone === "bad" ? "text-bad" : "text-ink";
 
   return (
     <>
@@ -90,7 +90,7 @@ export function OwnerTrucksCargo({
           type="button"
           onClick={onLoadDetails}
           disabled={loading}
-          className="text-xs px-3 py-1.5 rounded-lg border border-accent/50 text-accent hover:bg-accent/10 transition-colors disabled:opacity-60"
+          className="text-xs px-3 py-1.5 rounded-lg border border-accent/50 text-accent-ink hover:bg-accent/10 transition-colors disabled:opacity-60"
         >
           {loading ? (
             <span className="flex items-center gap-1.5">

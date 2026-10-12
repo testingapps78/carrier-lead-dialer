@@ -1,37 +1,59 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Sun, Moon } from "lucide-react";
 
+const KEY = "cd_theme"; // same storage key as before, so a saved choice keeps working
+
 export function ThemeInitScript() {
-  // Runs before paint so there's no flash of the wrong theme on load.
-  const code = `(function(){try{var t=localStorage.getItem('cd_theme');if(t==='light'){document.documentElement.classList.add('light');}}catch(e){}})();`;
+  // Runs before first paint: saved choice wins, otherwise follow the system setting. No flash.
+  const code = `(function(){try{var d=document.documentElement,s=localStorage.getItem('${KEY}');var t=(s==='light'||s==='dark')?s:(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');d.setAttribute('data-theme',t);d.style.colorScheme=t;}catch(e){}})();`;
   return <script dangerouslySetInnerHTML={{ __html: code }} />;
 }
 
-export default function ThemeToggle() {
-  const [isLight, setIsLight] = useState(false);
+function applyTheme(t: "light" | "dark") {
+  document.documentElement.setAttribute("data-theme", t);
+  document.documentElement.style.colorScheme = t;
+}
 
+export default function ThemeToggle() {
+  // While nothing is saved, follow the system setting if it changes.
   useEffect(() => {
-    setIsLight(document.documentElement.classList.contains("light"));
+    if (!window.matchMedia) return;
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const onChange = (e: MediaQueryListEvent) => {
+      try {
+        if (localStorage.getItem(KEY)) return;
+      } catch {
+        /* storage blocked: keep following the system */
+      }
+      applyTheme(e.matches ? "dark" : "light");
+    };
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
   }, []);
 
   function toggle() {
-    const next = !isLight;
-    setIsLight(next);
-    document.documentElement.classList.toggle("light", next);
+    const next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+    applyTheme(next);
     try {
-      localStorage.setItem("cd_theme", next ? "light" : "dark");
-    } catch {}
+      localStorage.setItem(KEY, next);
+    } catch {
+      /* the choice still applies for this visit */
+    }
   }
 
+  // Both icons are always rendered; CSS shows the right one for the active theme, so nothing flickers or mismatches on hydration.
   return (
     <button
+      type="button"
       onClick={toggle}
-      aria-label={isLight ? "Switch to dark mode" : "Switch to light mode"}
-      className="text-muted hover:text-ink transition-colors p-1.5 rounded-full hover:bg-surface2"
+      aria-label="Toggle light and dark theme"
+      title="Toggle light and dark theme"
+      className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-muted hover:text-ink hover:bg-inset transition-colors"
     >
-      {isLight ? <Moon size={16} /> : <Sun size={16} />}
+      <Sun size={18} className="hidden [[data-theme=dark]_&]:block" />
+      <Moon size={18} className="block [[data-theme=dark]_&]:hidden" />
     </button>
   );
 }

@@ -180,7 +180,7 @@ export default function LeadsList({ userId }: { userId: string }) {
   if (dncOnly) exportParams.set("dnc", "1");
 
   const chip = (active: boolean) =>
-    `flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg border transition-colors ${active ? "bg-accent/20 text-accent border-accent" : "text-muted border-border"}`;
+    `flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg border transition-colors ${active ? "bg-accent/20 text-accent-ink border-accent" : "text-muted border-border"}`;
 
   return (
     <div className="max-w-4xl mx-auto px-4 pt-5 pb-28">
@@ -196,7 +196,7 @@ export default function LeadsList({ userId }: { userId: string }) {
           </a>
           <a
             href="/api/export?kind=saved"
-            className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg border border-accent/50 text-accent hover:bg-accent/10 transition-colors"
+            className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg border border-accent/50 text-accent-ink hover:bg-accent/10 transition-colors"
             title="Download all saved MCs as a spreadsheet (CSV)"
           >
             <Download size={14} /> Export saved
@@ -207,7 +207,7 @@ export default function LeadsList({ userId }: { userId: string }) {
       <PendingNotes saver={saver} labelFor={(d) => { const l = rows.find((r) => r.dot_number === d); return l ? nameOf(l) : `DOT ${d}`; }} />
 
       {degraded && (
-        <div className="bg-accent/10 border border-accent/40 text-accent text-sm rounded-xl px-4 py-2 mb-4">
+        <div className="bg-accent/10 border border-accent/40 text-accent-ink text-sm rounded-xl px-4 py-2 mb-4">
           Showing your 500 most recent leads with basic search. Full search, callback views and Do Not Call filtering turn on after a database update is applied.
         </div>
       )}
@@ -302,8 +302,8 @@ export default function LeadsList({ userId }: { userId: string }) {
                 }}
                 className="w-full px-4 py-3 flex items-center gap-3 text-left"
               >
-                {lead.priority && <Star size={14} className="text-accent shrink-0" fill="currentColor" />}
-                {lead.saved && <Bookmark size={14} className="text-accent shrink-0" fill="currentColor" />}
+                {lead.priority && <Star size={14} className="text-accent-ink shrink-0" fill="currentColor" />}
+                {lead.saved && <Bookmark size={14} className="text-accent-ink shrink-0" fill="currentColor" />}
                 <div className="flex-1 min-w-0">
                   <div className="font-medium truncate">{name}</div>
                   <div className="text-muted text-xs mt-0.5 truncate">
@@ -314,12 +314,12 @@ export default function LeadsList({ userId }: { userId: string }) {
                   </div>
                 </div>
                 {bucket && bucket !== "completed" && (
-                  <span className={`text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded border shrink-0 ${bucket === "overdue" ? "text-bad border-bad/40" : "text-accent border-accent/40"}`}>
+                  <span className={`text-xs uppercase tracking-wide px-1.5 py-0.5 rounded border shrink-0 ${bucket === "overdue" ? "text-bad border-bad/40" : "text-accent-ink border-accent/40"}`}>
                     {BUCKET_LABEL[bucket]}
                   </span>
                 )}
                 <span className="mile-marker text-xs text-muted hidden sm:block shrink-0">{formatPhone(lead.carriers?.phone ?? null) || "—"}</span>
-                <span className={`text-[11px] px-2 py-1 rounded-full border shrink-0 ${statusColorClass(lead.status)}`}>{statusLabel(lead.status)}</span>
+                <span className={`text-xs px-2 py-1 rounded-full border shrink-0 ${statusColorClass(lead.status)}`}>{statusLabel(lead.status)}</span>
                 <ChevronDown size={16} className={`text-muted shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`} />
               </button>
 
@@ -386,7 +386,7 @@ export default function LeadsList({ userId }: { userId: string }) {
                       onOpenChange={(v) => setPanel(v ? "callback" : "none")}
                     />
                     {!dnc && panel !== "callback" && !(lead.callback_at || lead.reminder_date) && (
-                      <button onClick={() => setPanel("callback")} className="flex items-center gap-1 text-xs text-muted hover:text-accent underline decoration-dotted">
+                      <button onClick={() => setPanel("callback")} className="flex items-center gap-1 text-xs text-muted hover:text-accent-ink underline decoration-dotted">
                         <Bell size={12} /> Add a callback
                       </button>
                     )}
@@ -395,7 +395,7 @@ export default function LeadsList({ userId }: { userId: string }) {
                   <div className="mb-3">
                     <button
                       onClick={() => setPanel((p) => (p === "history" ? "none" : "history"))}
-                      className="flex items-center gap-1 text-xs text-muted hover:text-accent underline decoration-dotted"
+                      className="flex items-center gap-1 text-xs text-muted hover:text-accent-ink underline decoration-dotted"
                     >
                       <HistoryIcon size={12} /> {panel === "history" ? "Hide history" : "History"}
                     </button>
@@ -409,7 +409,7 @@ export default function LeadsList({ userId }: { userId: string }) {
                   <div className="flex items-center justify-between">
                     <button
                       onClick={() => void rowEdit(lead.dot_number, { priority: !lead.priority })}
-                      className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border transition-colors ${lead.priority ? "bg-accent/20 text-accent border-accent" : "text-muted border-border"}`}
+                      className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border transition-colors ${lead.priority ? "bg-accent/20 text-accent-ink border-accent" : "text-muted border-border"}`}
                     >
                       <Star size={12} fill={lead.priority ? "currentColor" : "none"} />
                       {lead.priority ? "Important" : "Mark important"}

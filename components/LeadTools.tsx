@@ -59,7 +59,7 @@ export function NotesEditor({
         className="w-full bg-surface2 border border-border rounded-xl px-3 py-2 text-sm text-ink focus:border-accent outline-none resize-none"
       />
       <div className="flex items-center gap-2 mt-1 min-h-[24px] text-xs">
-        {state === "unsaved" && <span className="text-accent">Unsaved</span>}
+        {state === "unsaved" && <span className="text-accent-ink">Unsaved</span>}
         {state === "saving" && (
           <span className="flex items-center gap-1 text-muted">
             <Loader2 size={11} className="animate-spin" /> Saving…
@@ -156,7 +156,7 @@ export function DialButton({
   const base =
     variant === "primary"
       ? "flex items-center justify-center gap-1.5 bg-accent text-oncolor font-semibold rounded-lg px-4 py-2 min-h-[40px] text-sm hover:bg-accent/90 transition-colors disabled:opacity-60"
-      : "flex items-center gap-1 text-xs border border-accent text-accent font-medium rounded-lg px-2.5 py-1.5 hover:bg-accent/10 transition-colors disabled:opacity-60";
+      : "flex items-center gap-1 text-xs border border-accent text-accent-ink font-medium rounded-lg px-2.5 py-1.5 hover:bg-accent/10 transition-colors disabled:opacity-60";
 
   if (blocked) {
     return (
@@ -275,7 +275,7 @@ export function ConfirmedContact({ dot, lead, userId, onLead }: { dot: number; l
       <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
         <span className="flex items-center gap-1.5 text-good">
           <User size={14} />
-          <span className="text-[10px] uppercase tracking-wide">Confirmed contact</span>
+          <span className="text-xs uppercase tracking-wide">Confirmed contact</span>
         </span>
         <span className="font-semibold">{confirmed}</span>
         <span className="text-muted text-xs">
@@ -309,7 +309,7 @@ export function ConfirmedContact({ dot, lead, userId, onLead }: { dot: number; l
         setRole("owner");
         setEditing(true);
       }}
-      className="mt-1.5 text-xs text-muted hover:text-accent underline decoration-dotted"
+      className="mt-1.5 text-xs text-muted hover:text-accent-ink underline decoration-dotted"
     >
       + Confirm who you spoke to
     </button>
@@ -424,13 +424,13 @@ export function CallbackSection({
     <div>
       {hasCallback && !dnc && (
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm bg-surface2 border border-border rounded-lg px-3 py-2">
-          <Bell size={13} className={bucket === "overdue" ? "text-bad" : "text-accent"} />
+          <Bell size={13} className={bucket === "overdue" ? "text-bad" : "text-accent-ink"} />
           <span className="font-medium">{desc}</span>
           <span className="text-muted text-xs">{mine}</span>
           {bucket && (
             <span
-              className={`text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded border ${
-                bucket === "overdue" ? "text-bad border-bad/40" : bucket === "completed" ? "text-muted border-border" : "text-accent border-accent/40"
+              className={`text-xs uppercase tracking-wide px-1.5 py-0.5 rounded border ${
+                bucket === "overdue" ? "text-bad border-bad/40" : bucket === "completed" ? "text-muted border-border" : "text-accent-ink border-accent/40"
               }`}
             >
               {BUCKET_LABEL[bucket]}
@@ -457,7 +457,7 @@ export function CallbackSection({
 
       {open && !dnc && (
         <div className="mt-2 bg-surface2 border border-accent/40 rounded-lg p-3 animate-fade-in">
-          <div className="text-xs text-accent font-medium mb-2 flex items-center gap-1">
+          <div className="text-xs text-accent-ink font-medium mb-2 flex items-center gap-1">
             <Bell size={12} /> When should this come back to you?
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -482,7 +482,7 @@ export function CallbackSection({
             <div className="text-xs text-muted mt-2">
               = {formatCallbackDisplay(preview.utc, tz)}
               {tz !== viewerTz ? ` · ${formatCallbackDisplay(preview.utc, viewerTz)} your time` : ""}
-              {preview.note && <div className="text-accent mt-0.5">{preview.note}</div>}
+              {preview.note && <div className="text-accent-ink mt-0.5">{preview.note}</div>}
             </div>
           )}
           {preview && !preview.ok && <div className="text-xs text-bad mt-2">{preview.error}</div>}
@@ -516,7 +516,7 @@ export function CallbackSection({
           </div>
         </div>
       )}
-      {resolved && <div className="text-xs text-accent mt-1">{resolved}</div>}
+      {resolved && <div className="text-xs text-accent-ink mt-1">{resolved}</div>}
       {!open && err && <div className="text-xs text-bad mt-1">{err}</div>}
     </div>
   );
@@ -687,18 +687,18 @@ export function HistoryPanel({ dot, statusLabel }: { dot: number; statusLabel: (
             <div>
               <div>{describeEvent(e, statusLabel)}</div>
               {e.note && <div className="text-muted text-xs">{e.note}</div>}
-              <div className="text-muted text-[11px]">{new Date(e.occurred_at).toLocaleString()}</div>
+              <div className="text-muted text-xs">{new Date(e.occurred_at).toLocaleString()}</div>
             </div>
           </li>
         ))}
       </ul>
       {hasMore && (
-        <button type="button" onClick={more} className="text-xs text-accent underline mt-2">
+        <button type="button" onClick={more} className="text-xs text-accent-ink underline mt-2">
           Show older
         </button>
       )}
       {legacy && (
-        <div className="text-[11px] text-muted mt-3 pt-2 border-t border-border/60">
+        <div className="text-xs text-muted mt-3 pt-2 border-t border-border/60">
           Earlier activity (recorded before call logging existed): {new Date(legacy).toLocaleString()}. This was the last status change, not a verified call.
         </div>
       )}

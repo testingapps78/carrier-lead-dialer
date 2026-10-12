@@ -89,7 +89,7 @@ export default function AccountSettings() {
 
         <form onSubmit={handlePasswordChange} className="space-y-3">
           <div>
-            <label className="block text-[11px] uppercase tracking-wide text-muted mb-1">Current password</label>
+            <label className="block text-xs uppercase tracking-wide text-muted mb-1">Current password</label>
             <input
               type="password"
               required
@@ -99,7 +99,7 @@ export default function AccountSettings() {
             />
           </div>
           <div>
-            <label className="block text-[11px] uppercase tracking-wide text-muted mb-1">New password</label>
+            <label className="block text-xs uppercase tracking-wide text-muted mb-1">New password</label>
             <input
               type="password"
               required
@@ -138,7 +138,7 @@ export default function AccountSettings() {
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium">
                     {describeUserAgent(s.user_agent)}
-                    {s.id === currentSessionId && <span className="text-accent text-xs ml-2">this device</span>}
+                    {s.id === currentSessionId && <span className="text-accent-ink text-xs ml-2">this device</span>}
                   </div>
                   <div className="text-muted text-xs mt-0.5">
                     Active {new Date(s.last_active_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
