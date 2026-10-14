@@ -7,10 +7,10 @@ import type { Shift } from "@/lib/types";
 import { formatDuration } from "@/lib/types";
 
 const ACTION_CONFIG: Record<EventType, { label: string; icon: any; className: string }> = {
-  CHECK_IN: { label: "Check in", icon: Play, className: "bg-good/15 text-good border border-good/30" },
-  BREAK_OUT: { label: "Break", icon: Coffee, className: "bg-accent/15 text-accent-ink border border-accent/30" },
-  BREAK_IN: { label: "Resume", icon: Play, className: "bg-good/15 text-good border border-good/30" },
-  CHECK_OUT: { label: "Check out", icon: Square, className: "bg-bad/15 text-bad border border-bad/30" },
+  CHECK_IN: { label: "Check in", icon: Play, className: "bg-good/10 text-good border border-good/40" },
+  BREAK_OUT: { label: "Break", icon: Coffee, className: "bg-accent/10 text-accent-ink border border-accent/40" },
+  BREAK_IN: { label: "Resume", icon: Play, className: "bg-good/10 text-good border border-good/40" },
+  CHECK_OUT: { label: "Check out", icon: Square, className: "bg-bad/10 text-bad border border-bad/40" },
 };
 
 const STATUS_TEXT: Record<LiveStatus, string> = {
@@ -153,7 +153,7 @@ export default function SessionBar({
   const working = status === "WORKING" || status === "ON_BREAK";
 
   return (
-    <div className="flex items-center justify-between gap-3 bg-surface border border-border rounded-xl px-3 py-2">
+    <div className="flex items-center justify-between gap-3">
       <div className="min-w-0">
         <div className="flex items-center gap-2 text-sm font-medium text-ink">
           <span className={`inline-block h-2 w-2 rounded-full shrink-0 ${DOT_CLASS[status]}`} />
@@ -165,7 +165,7 @@ export default function SessionBar({
           </span>
         </div>
         {shift && (
-          <div className="text-xs text-muted truncate mt-0.5">
+          <div className="text-xs text-muted break-words mt-0.5">
             {covered !== null && (
               <>
                 {shift.mode?.toUpperCase()} {shift.start_number}–{shift.end_number} ({covered} covered) ·{" "}
@@ -185,7 +185,7 @@ export default function SessionBar({
               key={action}
               onClick={() => doAction(action)}
               disabled={busy}
-              className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50 ${cfg.className}`}
+              className={`flex items-center gap-1.5 text-sm font-medium px-3 min-h-[40px] rounded-xl transition-colors disabled:opacity-50 ${cfg.className}`}
             >
               <Icon size={12} />
               {cfg.label}

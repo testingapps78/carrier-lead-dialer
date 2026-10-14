@@ -8,7 +8,8 @@ import { friendlyError, newKey, post, api } from "@/lib/leadClient";
 import { callbackBucket } from "@/lib/callbacks";
 import { browserTimeZone } from "@/lib/callbackTime";
 import { CallbackSection, ConfirmedContact, DialButton, DncBanner, HistoryPanel, LogCallForm, NotesEditor, PendingNotes } from "@/components/LeadTools";
-import { OpenerLine, BriefFacts, OwnerTrucksCargo, FactLabel } from "@/components/CallBrief";
+import { OpenerLine, BriefFacts, TruckTypes, OwnerAndCargo, FactLabel } from "@/components/CallBrief";
+import Tile from "@/components/Tile";
 import ViewMore from "@/components/ViewMore";
 import AIPanel from "@/components/AIPanel";
 import { useCallStatuses } from "@/lib/useCallStatuses";
@@ -364,100 +365,103 @@ export default function DialTool({ userId }: { userId: string }) {
   const phone = formatPhone(current?.phone ?? null);
   const cell = formatPhone(current?.cell_phone ?? null);
 
-  const inputCls = "bg-surface2 border border-border rounded-lg px-2.5 py-1.5 text-sm text-ink focus:border-accent outline-none";
-  const labelCls = "block text-xs uppercase tracking-wide text-muted mb-0.5";
+  const inputCls = "bg-inset border border-border rounded-xl px-3 h-10 text-sm text-ink focus:border-accent outline-none";
+  const labelCls = "block text-xs font-medium text-muted mb-1";
+  const details = current ? current.motus_details ?? (enriched?.dot === current.dot_number ? enriched.details : null) : null;
+  const detailsLoading = !!current && detailsState.dot === current.dot_number && detailsState.loading;
+  const detailsError = current && detailsState.dot === current.dot_number ? detailsState.error : null;
+  const pill = (active: boolean) =>
+    `inline-flex items-center gap-1.5 text-sm px-3 min-h-[32px] rounded-full border transition-colors ${
+      active ? "bg-accent/15 text-accent-ink border-accent" : "text-muted border-border hover:text-ink hover:bg-inset"
+    }`;
 
   return (
-    <div className="max-w-[1500px] mx-auto px-4 lg:px-6 pt-3 pb-20">
-      <div className="flex flex-col xl:flex-row gap-3 mb-3 xl:items-stretch">
-        <div className="xl:w-[400px] xl:shrink-0">
-          <SessionBar shift={shift} setShift={setShift} shiftReady={!shiftLoading} />
-        </div>
-
-        {/* Filters */}
-        <form
-          onSubmit={handleStart}
-          className="flex-1 bg-surface border border-border rounded-xl px-3 py-2 flex flex-wrap items-end gap-x-3 gap-y-2"
-        >
-          <div className="flex rounded-lg border border-border overflow-hidden text-xs">
-            <button
-              type="button"
-              onClick={() => setMode("mc")}
-              className={`px-2.5 py-2 font-medium ${mode === "mc" ? "bg-accent text-oncolor" : "text-muted"}`}
-            >
-              MC
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode("dot")}
-              className={`px-2.5 py-2 font-medium ${mode === "dot" ? "bg-accent text-oncolor" : "text-muted"}`}
-            >
-              DOT
-            </button>
-          </div>
-
-          <div>
-            <label className={labelCls}>Starting {mode === "mc" ? "MC" : "DOT"} #</label>
-            <input
-              value={startInput}
-              onChange={(e) => setStartInput(e.target.value)}
-              placeholder={mode === "mc" ? "e.g. 900000" : "e.g. 2500000"}
-              className={`w-32 mile-marker ${inputCls}`}
-              inputMode="numeric"
-            />
-          </div>
-
-          <div>
-            <label className={labelCls}>State</label>
-            <select value={state} onChange={(e) => setState(e.target.value)} className={inputCls}>
-              <option value="">Any</option>
-              {US_STATES.map((s) => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className={labelCls}>Power units</label>
-            <div className="flex items-center gap-1">
-              <input value={minPU} onChange={(e) => setMinPU(e.target.value)} className={`w-12 ${inputCls}`} inputMode="numeric" />
-              <span className="text-muted">–</span>
-              <input value={maxPU} onChange={(e) => setMaxPU(e.target.value)} className={`w-12 ${inputCls}`} inputMode="numeric" />
+    <div className="w-full px-6 pt-4 pb-24 md:pb-6">
+      {/* Row 1: scan controls and the merged check-in */}
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-12 mb-4">
+        <Tile label="Scan" className="xl:col-span-8">
+          <form onSubmit={handleStart} className="flex flex-wrap items-end gap-x-4 gap-y-3">
+            <div className="flex rounded-xl border border-border overflow-hidden text-sm h-10">
+              <button
+                type="button"
+                onClick={() => setMode("mc")}
+                className={`px-4 font-semibold ${mode === "mc" ? "bg-accent text-accent-text" : "text-muted hover:bg-inset"}`}
+              >
+                MC
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode("dot")}
+                className={`px-4 font-semibold ${mode === "dot" ? "bg-accent text-accent-text" : "text-muted hover:bg-inset"}`}
+              >
+                DOT
+              </button>
             </div>
-          </div>
 
-          <label className="flex items-center gap-1.5 text-xs text-muted pb-2">
-            <input type="checkbox" checked={docketOnly} onChange={(e) => setDocketOnly(e.target.checked)} />
-            Has MC authority
-          </label>
+            <div>
+              <label className={labelCls}>Starting {mode === "mc" ? "MC" : "DOT"} #</label>
+              <input
+                value={startInput}
+                onChange={(e) => setStartInput(e.target.value)}
+                placeholder={mode === "mc" ? "e.g. 900000" : "e.g. 2500000"}
+                className={`w-36 mile-marker ${inputCls}`}
+                inputMode="numeric"
+              />
+            </div>
 
-          <button
-            type="submit"
-            className="ml-auto bg-accent text-oncolor text-sm font-semibold rounded-lg px-4 py-2 hover:bg-accent/90 active:scale-[0.98] transition-all"
-          >
-            {started ? "Restart scan" : "Start scan"}
-          </button>
-        </form>
+            <div>
+              <label className={labelCls}>State</label>
+              <select value={state} onChange={(e) => setState(e.target.value)} className={inputCls}>
+                <option value="">Any</option>
+                {US_STATES.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className={labelCls}>Power units</label>
+              <div className="flex items-center gap-1.5">
+                <input value={minPU} onChange={(e) => setMinPU(e.target.value)} className={`w-14 mile-marker ${inputCls}`} inputMode="numeric" />
+                <span className="text-muted">–</span>
+                <input value={maxPU} onChange={(e) => setMaxPU(e.target.value)} className={`w-14 mile-marker ${inputCls}`} inputMode="numeric" />
+              </div>
+            </div>
+
+            <label className="flex items-center gap-2 text-sm text-muted min-h-[40px]">
+              <input type="checkbox" checked={docketOnly} onChange={(e) => setDocketOnly(e.target.checked)} />
+              Has MC authority
+            </label>
+
+            <button type="submit" className="btn btn-primary ml-auto">
+              {started ? "Restart scan" : "Start scan"}
+            </button>
+          </form>
+        </Tile>
+
+        <Tile label="Check-in" className="xl:col-span-4">
+          <SessionBar shift={shift} setShift={setShift} shiftReady={!shiftLoading} />
+        </Tile>
       </div>
 
       <PendingNotes saver={saver} labelFor={dotLabel} />
 
       {editError && (
-        <div className="flex items-center gap-2 flex-wrap bg-bad/10 border border-bad/40 text-bad text-sm rounded-xl px-4 py-2 mb-3">
+        <div className="flex items-center gap-2 flex-wrap bg-danger/10 border border-danger/40 text-danger text-sm rounded-tile px-4 py-2.5 mb-4">
           <span>Couldn&apos;t save the change for {dotLabel(editError.dot)}: {editError.message}</span>
           <button type="button" onClick={editError.retry} className="underline font-medium">Retry</button>
         </div>
       )}
 
       {notice && (
-        <div className="bg-accent/10 border border-accent/40 text-accent-ink text-sm rounded-xl px-4 py-2 mb-3">{notice}</div>
+        <div className="bg-accent/10 border border-accent/40 text-accent-ink text-sm rounded-tile px-4 py-2.5 mb-4">{notice}</div>
       )}
 
       {continuation && (
-        <div className="flex items-center gap-3 flex-wrap bg-accent/10 border border-accent/40 text-accent-ink text-sm rounded-xl px-4 py-2 mb-3">
+        <div className="flex items-center gap-3 flex-wrap bg-accent/10 border border-accent/40 text-accent-ink text-sm rounded-tile px-4 py-2.5 mb-4">
           <span>{continuation}</span>
           {!current && (
-            <button type="button" onClick={handleNext} disabled={loading} className="bg-accent text-oncolor font-semibold rounded-lg px-3 py-1.5 disabled:opacity-50">
+            <button type="button" onClick={handleNext} disabled={loading} className="btn btn-primary disabled:opacity-50">
               Keep scanning
             </button>
           )}
@@ -465,7 +469,7 @@ export default function DialTool({ userId }: { userId: string }) {
       )}
 
       {error && (
-        <div className="bg-bad/10 border border-bad/40 text-bad text-sm rounded-xl px-4 py-2 mb-3">{error}</div>
+        <div className="bg-danger/10 border border-danger/40 text-danger text-sm rounded-tile px-4 py-2.5 mb-4">{error}</div>
       )}
 
       {restoring && (
@@ -475,13 +479,13 @@ export default function DialTool({ userId }: { userId: string }) {
       )}
 
       {!restoring && !started && !error && (
-        <div className="text-center text-muted py-12 border border-dashed border-border rounded-xl">
+        <div className="text-center text-muted py-12 border border-dashed border-border rounded-tile">
           Set a starting {mode === "mc" ? "MC" : "DOT"} number above and hit <span className="text-ink">Start scan</span>.
         </div>
       )}
 
       {!restoring && started && exhausted && (
-        <div className="text-center text-muted py-12 border border-dashed border-border rounded-xl">
+        <div className="text-center text-muted py-12 border border-dashed border-border rounded-tile">
           No more active carriers match these filters from here on. Try raising the range or loosening a filter.
         </div>
       )}
@@ -494,168 +498,170 @@ export default function DialTool({ userId }: { userId: string }) {
       )}
 
       {current && !exhausted && (
-        <div key={current.dot_number} className="grid lg:grid-cols-12 gap-3 animate-fade-in">
-          {/* Left: everything you need to know before dialing */}
-          <section className="lg:col-span-7 bg-surface elevated border border-border/60 rounded-2xl p-4">
-            <div className="flex flex-wrap items-center gap-2 mb-2">
-              {current.docket_prefix && current.docket_number && (
-                <span className="flex items-center gap-1 mile-marker text-sm border border-accent text-accent-ink px-2 py-0.5 rounded-lg">
-                  {current.docket_prefix}-{current.docket_number}
-                  <CopyButton value={String(current.docket_number)} label="" />
+        <div key={current.dot_number} className="grid gap-4 md:grid-cols-2 xl:grid-cols-12 items-start animate-fade-in">
+          {/* Left: who they are, how to reach them, what they run */}
+          <div className="grid gap-4 xl:col-span-7">
+            <Tile label="Carrier">
+              <div className="flex flex-wrap items-center gap-2 mb-2">
+                {current.docket_prefix && current.docket_number && (
+                  <span className="flex items-center gap-1.5 mile-marker text-sm border border-accent text-accent-ink pl-2.5 pr-1 py-0.5 rounded-lg">
+                    {current.docket_prefix}-{current.docket_number}
+                    <CopyButton value={String(current.docket_number)} label="" />
+                  </span>
+                )}
+                <span className="flex items-center gap-1.5 mile-marker text-sm border border-border text-muted pl-2.5 pr-1 py-0.5 rounded-lg">
+                  DOT {current.dot_number}
+                  <CopyButton value={String(current.dot_number)} label="" />
                 </span>
-              )}
-              <span className="flex items-center gap-1 mile-marker text-sm border border-border text-muted px-2 py-0.5 rounded-lg">
-                DOT {current.dot_number}
-                <CopyButton value={String(current.dot_number)} label="" />
-              </span>
-              {current.hm_ind === "Y" && (
-                <span className="text-xs border border-bad/50 text-bad px-2 py-0.5 rounded-lg uppercase">Hazmat</span>
-              )}
-              {savingLead && <span className="text-xs text-muted ml-auto">Saving…</span>}
-            </div>
-
-            <h2 className="font-display text-xl font-semibold tracking-tight leading-tight">
-              {current.legal_name || "Unnamed carrier"}
-              {current.dba_name && <span className="text-muted text-sm font-normal"> · dba {current.dba_name}</span>}
-            </h2>
-
-            {(current.company_rep1 || current.company_rep2) && (
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-0.5 mt-1 text-accent-ink">
-                {current.company_rep1 && (
-                  <span className="flex items-center gap-1.5 text-sm font-semibold">
-                    <User size={14} className="shrink-0" /> {current.company_rep1}
-                  </span>
+                {current.hm_ind === "Y" && (
+                  <span className="text-xs border border-danger/50 text-danger px-2 py-0.5 rounded-lg uppercase">Hazmat</span>
                 )}
-                {current.company_rep2 && (
-                  <span className="flex items-center gap-1.5 text-xs font-medium text-accent-ink/80">
-                    <User size={12} className="shrink-0" /> {current.company_rep2}
-                  </span>
-                )}
+                {savingLead && <span className="text-xs text-muted">Saving…</span>}
+                <button
+                  onClick={toggleSaved}
+                  disabled={savingLead}
+                  className={`ml-auto inline-flex items-center gap-1.5 text-sm font-medium px-3 min-h-[40px] rounded-xl border transition-colors disabled:opacity-60 ${
+                    lead?.saved ? "bg-accent/15 text-accent-ink border-accent" : "text-ink border-border hover:bg-inset"
+                  }`}
+                  title="Save this MC to export later"
+                >
+                  <Bookmark size={15} fill={lead?.saved ? "currentColor" : "none"} />
+                  {lead?.saved ? "Saved" : "Save MC"}
+                </button>
               </div>
-            )}
 
-            <ConfirmedContact dot={current.dot_number} lead={lead} userId={userId} onLead={applyLead} />
+              <h2 className="font-display text-2xl font-semibold tracking-tight leading-tight">
+                {current.legal_name || "Unnamed carrier"}
+                {current.dba_name && <span className="text-muted text-sm font-normal"> · dba {current.dba_name}</span>}
+              </h2>
 
-            {isDnc && (
-              <div className="mt-3">
-                <DncBanner />
-              </div>
-            )}
+              {(current.company_rep1 || current.company_rep2) && (
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-0.5 mt-1.5 text-accent-ink">
+                  {current.company_rep1 && (
+                    <span className="flex items-center gap-1.5 text-base font-semibold">
+                      <User size={16} className="shrink-0" /> {current.company_rep1}
+                    </span>
+                  )}
+                  {current.company_rep2 && (
+                    <span className="flex items-center gap-1.5 text-sm font-medium text-accent-ink">
+                      <User size={14} className="shrink-0" /> {current.company_rep2}
+                    </span>
+                  )}
+                </div>
+              )}
 
-            <div className="mt-3">
-              <OpenerLine carrier={current} confirmedName={lead?.contact_override_name} />
-            </div>
+              <ConfirmedContact dot={current.dot_number} lead={lead} userId={userId} onLead={applyLead} />
 
-            <div className="grid grid-cols-2 xl:grid-cols-3 gap-x-4 gap-y-3 mt-4">
-              <div>
-                <FactLabel icon={<Phone size={10} />}>Phone</FactLabel>
+              {isDnc && (
+                <div className="mt-3">
+                  <DncBanner />
+                </div>
+              )}
+            </Tile>
+
+            <div className="grid gap-4 xl:grid-cols-5">
+              <Tile label="Call" accent={!isDnc && !!phone} className="xl:col-span-3">
                 {phone ? (
                   <>
-                    <span className="mile-marker text-lg">{phone}</span>
-                    <div className="flex items-start gap-1.5 mt-1">
-                      <DialButton number={current.phone} dot={current.dot_number} userId={userId} blocked={isDnc} onLead={applyLead} />
-                      <CopyButton value={current.phone ?? ""} />
+                    <div className="num text-2xl font-semibold tracking-tight">{phone}</div>
+                    <div className="flex items-start gap-2 mt-3">
+                      <DialButton number={current.phone} dot={current.dot_number} userId={userId} blocked={isDnc} size="lg" tone="onAccent" onLead={applyLead} />
+                      <CopyButton value={current.phone ?? ""} tone="onAccent" />
                     </div>
                   </>
                 ) : (
                   <span className="text-muted text-sm">Not on file</span>
                 )}
                 {cell && (
-                  <div className="flex items-start gap-1.5 mt-2">
-                    <span className="mile-marker text-sm text-muted pt-1">{cell}</span>
-                    <DialButton number={current.cell_phone} dot={current.dot_number} userId={userId} blocked={isDnc} label="Cell" variant="secondary" onLead={applyLead} />
-                    <CopyButton value={current.cell_phone ?? ""} />
+                  <div className="flex items-start gap-2 mt-3">
+                    <span className="num text-sm pt-2.5">{cell}</span>
+                    <DialButton number={current.cell_phone} dot={current.dot_number} userId={userId} blocked={isDnc} label="Cell" variant="secondary" tone="onAccent" onLead={applyLead} />
+                    <CopyButton value={current.cell_phone ?? ""} tone="onAccent" />
                   </div>
                 )}
-              </div>
+              </Tile>
 
-              <div>
-                <FactLabel icon={<Mail size={10} />}>Email</FactLabel>
-                {current.email ? (
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-sm break-all">{current.email}</span>
-                    <CopyButton value={current.email} />
+              <Tile label="Contact" className="xl:col-span-2">
+                <div className="space-y-3">
+                  <div>
+                    <FactLabel icon={<Mail size={12} />}>Email</FactLabel>
+                    {current.email ? (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm break-all">{current.email}</span>
+                        <CopyButton value={current.email} />
+                      </div>
+                    ) : (
+                      <span className="text-muted text-sm">No email on file</span>
+                    )}
                   </div>
-                ) : (
-                  <span className="text-muted text-sm">No email on file</span>
-                )}
-              </div>
-
-              <div>
-                <FactLabel icon={<MapPin size={10} />}>Location</FactLabel>
-                <div className="text-sm">
-                  {[current.phy_city, current.phy_state, current.phy_zip].filter(Boolean).join(", ") || "—"}
+                  <div>
+                    <FactLabel icon={<MapPin size={12} />}>Location</FactLabel>
+                    <div className="text-sm">
+                      {[current.phy_city, current.phy_state, current.phy_zip].filter(Boolean).join(", ") || "—"}
+                    </div>
+                    <div className="text-muted text-xs">{current.phy_street}</div>
+                  </div>
                 </div>
-                <div className="text-muted text-xs">{current.phy_street}</div>
-              </div>
+              </Tile>
+            </div>
 
-              <div>
-                <FactLabel icon={<Truck size={10} />}>Fleet</FactLabel>
-                <div className="text-sm">
+            <div className="grid gap-4 xl:grid-cols-5">
+              <Tile label="Fleet" className="xl:col-span-2">
+                <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted mb-1">
+                  <Truck size={12} /> Fleet size
+                </div>
+                <div className="num text-sm">
                   {current.power_units ?? "?"} power units · {current.total_drivers ?? "?"} drivers
                 </div>
-              </div>
+                <div className="mt-3">
+                  <TruckTypes details={details} loading={detailsLoading} error={detailsError} onLoadDetails={() => loadDetails(current.dot_number)} />
+                </div>
+              </Tile>
 
-              <BriefFacts carrier={current} />
+              <Tile label="Status" className="xl:col-span-3">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <BriefFacts carrier={current} />
+                </div>
+              </Tile>
             </div>
 
             <ViewMore>
-              <OwnerTrucksCargo
-                details={current.motus_details ?? (enriched?.dot === current.dot_number ? enriched.details : null)}
-                loading={detailsState.dot === current.dot_number && detailsState.loading}
-                error={detailsState.dot === current.dot_number ? detailsState.error : null}
-                onLoadDetails={() => loadDetails(current.dot_number)}
-              />
-              <EnrichmentPanel
-                dotNumber={current.dot_number}
-                initial={current.motus_details ?? (enriched?.dot === current.dot_number ? enriched.details : undefined)}
-              />
+              <OwnerAndCargo details={details} />
+              <EnrichmentPanel dotNumber={current.dot_number} initial={current.motus_details ?? (enriched?.dot === current.dot_number ? enriched.details : undefined)} />
             </ViewMore>
-          </section>
+          </div>
 
-          {/* Right: AI, outcome, notes, next */}
-          <aside className="lg:col-span-5 flex flex-col gap-3">
-            <AIPanel
-              carrier={current}
-              notes={saver.getDraft(current.dot_number) ?? lead?.notes ?? ""}
-              statuses={statuses}
-              onApplyNotes={(text) => saver.setNotes(current.dot_number, text)}
-              onApplyStatus={handleStatusClick}
-            />
+          {/* Right: the opener, the call itself, and moving on */}
+          <div className="flex flex-col gap-4 xl:col-span-5">
+            <Tile label="Opener">
+              <OpenerLine carrier={current} confirmedName={lead?.contact_override_name} />
+              <div className="mt-3">
+                <AIPanel
+                  carrier={current}
+                  notes={saver.getDraft(current.dot_number) ?? lead?.notes ?? ""}
+                  statuses={statuses}
+                  onApplyNotes={(text) => saver.setNotes(current.dot_number, text)}
+                  onApplyStatus={handleStatusClick}
+                />
+              </div>
+            </Tile>
 
-            <div className="bg-surface border border-border rounded-2xl p-4">
-              <div className="text-xs uppercase tracking-wide text-muted mb-2">Call status</div>
-              <div className="flex flex-wrap gap-1.5">
+            <Tile label="Call notes">
+              <div className="flex flex-wrap gap-2">
                 {statuses.map((opt) => (
                   <button
                     key={opt.value}
                     onClick={() => handleStatusClick(opt.value)}
-                    className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${statusClass(opt.color)} ${
-                      lead?.status === opt.value ? "ring-1 ring-accent" : "opacity-70 hover:opacity-100"
+                    className={`text-sm px-3 min-h-[32px] rounded-full border transition-colors ${statusClass(opt.color)} ${
+                      lead?.status === opt.value ? "ring-2 ring-accent font-semibold" : "hover:brightness-95"
                     }`}
                   >
                     {opt.label}
                   </button>
                 ))}
-                <button
-                  onClick={() => void leadEdit({ priority: !lead?.priority })}
-                  className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border transition-colors ${
-                    lead?.priority ? "bg-accent/20 text-accent-ink border-accent" : "text-muted border-border hover:text-ink"
-                  }`}
-                >
-                  <Star size={12} fill={lead?.priority ? "currentColor" : "none"} />
+                <button onClick={() => void leadEdit({ priority: !lead?.priority })} className={pill(!!lead?.priority)}>
+                  <Star size={14} fill={lead?.priority ? "currentColor" : "none"} />
                   Important
-                </button>
-                <button
-                  onClick={toggleSaved}
-                  disabled={savingLead}
-                  className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border transition-colors disabled:opacity-60 ${
-                    lead?.saved ? "bg-accent/20 text-accent-ink border-accent" : "text-muted border-border hover:text-ink"
-                  }`}
-                  title="Save this MC to export later"
-                >
-                  <Bookmark size={12} fill={lead?.saved ? "currentColor" : "none"} />
-                  {lead?.saved ? "Saved" : "Save MC"}
                 </button>
               </div>
 
@@ -678,64 +684,46 @@ export default function DialTool({ userId }: { userId: string }) {
                 <NotesEditor dot={current.dot_number} serverNotes={lead?.notes} saver={saver} />
               </div>
 
-              <div className="flex flex-wrap items-center gap-1.5 mt-3">
+              <div className="flex flex-wrap items-center gap-2 mt-3">
                 {!isDnc && (
-                  <button
-                    type="button"
-                    onClick={() => setPanel((p) => (p === "log" ? "none" : "log"))}
-                    className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border transition-colors ${panel === "log" ? "border-accent text-accent-ink bg-accent/10" : "border-border text-muted hover:text-ink"}`}
-                  >
-                    <PhoneCall size={12} /> Log call
+                  <button type="button" onClick={() => setPanel((p) => (p === "log" ? "none" : "log"))} className={pill(panel === "log")}>
+                    <PhoneCall size={14} /> Log call
                   </button>
                 )}
                 {!isDnc && (
-                  <button
-                    type="button"
-                    onClick={() => setPanel((p) => (p === "callback" ? "none" : "callback"))}
-                    className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border transition-colors ${panel === "callback" ? "border-accent text-accent-ink bg-accent/10" : "border-border text-muted hover:text-ink"}`}
-                  >
-                    <Bell size={12} /> Callback
+                  <button type="button" onClick={() => setPanel((p) => (p === "callback" ? "none" : "callback"))} className={pill(panel === "callback")}>
+                    <Bell size={14} /> Callback
                   </button>
                 )}
-                <button
-                  type="button"
-                  onClick={() => setPanel((p) => (p === "history" ? "none" : "history"))}
-                  className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border transition-colors ${panel === "history" ? "border-accent text-accent-ink bg-accent/10" : "border-border text-muted hover:text-ink"}`}
-                >
-                  <HistoryIcon size={12} /> History
+                <button type="button" onClick={() => setPanel((p) => (p === "history" ? "none" : "history"))} className={pill(panel === "history")}>
+                  <HistoryIcon size={14} /> History
                 </button>
               </div>
 
               {panel === "log" && !isDnc && (
-                <div className="mt-2">
+                <div className="mt-3">
                   <LogCallForm dot={current.dot_number} userId={userId} statuses={statuses} onLead={applyLead} />
                 </div>
               )}
               {panel === "history" && (
-                <div className="mt-2">
+                <div className="mt-3">
                   <HistoryPanel dot={current.dot_number} statusLabel={(v) => statuses.find((x) => x.value === v)?.label ?? v} />
                 </div>
               )}
-            </div>
+            </Tile>
 
-            <div className="flex gap-2">
-              <button
-                onClick={handleBack}
-                disabled={history.length === 0 || loading}
-                className="flex items-center gap-1 bg-surface2 border border-border text-ink font-medium rounded-xl px-4 py-3 disabled:opacity-40 hover:border-accent transition-colors"
-              >
-                <ChevronLeft size={16} />
-                Back
-              </button>
-              <button
-                onClick={handleNext}
-                disabled={loading}
-                className="flex-1 bg-accent glow-accent text-oncolor font-semibold rounded-xl py-3 hover:bg-accent/90 disabled:opacity-50 transition-all"
-              >
-                {loading ? "Loading…" : "Next active carrier →"}
-              </button>
-            </div>
-          </aside>
+            <Tile label="Browse">
+              <div className="flex gap-3">
+                <button onClick={handleBack} disabled={history.length === 0 || loading} className="btn btn-secondary min-h-[48px] disabled:opacity-40">
+                  <ChevronLeft size={16} />
+                  Back
+                </button>
+                <button onClick={handleNext} disabled={loading} className="btn btn-primary flex-1 min-h-[48px] text-base disabled:opacity-50">
+                  {loading ? "Loading…" : "Next active carrier →"}
+                </button>
+              </div>
+            </Tile>
+          </div>
         </div>
       )}
     </div>

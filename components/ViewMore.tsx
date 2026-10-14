@@ -30,17 +30,17 @@ export default function ViewMore({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="mt-4 pt-2 border-t border-border">
+    <div className="tile !py-2">
       <button
         type="button"
         onClick={toggle}
-        className="flex items-center gap-1 text-xs font-medium text-accent-ink hover:text-accent-ink/80 py-1"
+        className="flex items-center gap-1.5 text-sm font-medium text-accent-ink hover:opacity-80 min-h-[40px]"
         aria-expanded={open}
       >
         <ChevronDown size={14} className={`transition-transform ${open ? "rotate-180" : ""}`} />
         {open ? "Show less" : "View more details"}
       </button>
-      {open && <div className="mt-2 space-y-3">{children}</div>}
+      {open && <div className="mt-1 mb-2 space-y-3">{children}</div>}
     </div>
   );
 }

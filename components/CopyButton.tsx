@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { Check, Copy } from "lucide-react";
 
-export default function CopyButton({ value, label }: { value: string; label?: string }) {
+export default function CopyButton({ value, label, tone = "default" }: { value: string; label?: string; tone?: "default" | "onAccent" }) {
   const [copied, setCopied] = useState(false);
 
   async function copy() {
@@ -19,9 +20,21 @@ export default function CopyButton({ value, label }: { value: string; label?: st
     <button
       onClick={copy}
       type="button"
-      className="text-xs px-2 py-1 rounded border border-border text-muted hover:text-ink hover:border-accent transition-colors"
+      className={`text-xs px-2.5 min-h-[28px] rounded-lg border transition-colors ${
+        tone === "onAccent"
+          ? "border-accent-text/40 text-accent-text hover:bg-accent-text/10"
+          : "border-border text-muted hover:text-ink hover:border-accent"
+      }`}
     >
-      {copied ? "Copied" : label ?? "Copy"}
+      {label === "" ? (
+        <span className="inline-flex items-center justify-center" aria-label={copied ? "Copied" : "Copy"}>
+          {copied ? <Check size={13} /> : <Copy size={13} />}
+        </span>
+      ) : copied ? (
+        "Copied"
+      ) : (
+        label ?? "Copy"
+      )}
     </button>
   );
 }

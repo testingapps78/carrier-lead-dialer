@@ -140,6 +140,8 @@ export function DialButton({
   blocked,
   label = "Dial",
   variant = "primary",
+  tone = "default",
+  size = "md",
   onLead,
 }: {
   number: string | null | undefined;
@@ -148,19 +150,26 @@ export function DialButton({
   blocked: boolean;
   label?: string;
   variant?: "primary" | "secondary";
+  tone?: "default" | "onAccent"; // onAccent: used on the amber tile (dark button / dark outline)
+  size?: "md" | "lg";
   onLead: OnLead;
 }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
+  const onAccent = tone === "onAccent";
   const base =
     variant === "primary"
-      ? "flex items-center justify-center gap-1.5 bg-accent text-oncolor font-semibold rounded-lg px-4 py-2 min-h-[40px] text-sm hover:bg-accent/90 transition-colors disabled:opacity-60"
-      : "flex items-center gap-1 text-xs border border-accent text-accent-ink font-medium rounded-lg px-2.5 py-1.5 hover:bg-accent/10 transition-colors disabled:opacity-60";
+      ? `flex items-center justify-center gap-2 font-semibold rounded-xl px-5 transition-colors disabled:opacity-60 ${
+          size === "lg" ? "min-h-[48px] text-base" : "min-h-[40px] text-sm"
+        } ${onAccent ? "bg-accent-text text-accent hover:opacity-90" : "bg-accent text-accent-text hover:brightness-95"}`
+      : `flex items-center gap-1.5 text-sm font-medium rounded-xl px-3 min-h-[40px] border transition-colors disabled:opacity-60 ${
+          onAccent ? "border-accent-text/50 text-accent-text hover:bg-accent-text/10" : "border-accent text-accent-ink hover:bg-accent/10"
+        }`;
 
   if (blocked) {
     return (
-      <span className={`${base.replace(/hover:\S+/g, "")} opacity-50 cursor-not-allowed bg-surface2 text-muted border border-border`} title="Marked Do Not Call">
+      <span className={`${base.replace(/hover:\S+/g, "")} opacity-60 cursor-not-allowed bg-inset text-muted border border-border`} title="Marked Do Not Call">
         <AlertTriangle size={13} /> Do Not Call
       </span>
     );

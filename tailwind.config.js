@@ -31,6 +31,7 @@ module.exports = {
         warning: c("warning"),
         danger: c("danger"),
         info: c("info"),
+        violet: c("violet"),
         slate: c("slate"),
         scrim: c("scrim"),
         // Older names, kept as aliases so existing components keep working while screens are migrated

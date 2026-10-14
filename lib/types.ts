@@ -134,12 +134,12 @@ export function formatPhone(raw: string | null): string | null {
 // created in the admin panel with e.g. color "green" renders identically
 // everywhere it appears.
 export const STATUS_COLOR_CLASSES: Record<string, string> = {
-  slate: "bg-slate/20 text-muted border-slate/40",
-  blue: "bg-info/15 text-info border-info/40",
-  green: "bg-good/15 text-good border-good/40",
-  red: "bg-bad/15 text-bad border-bad/40",
-  amber: "bg-accent/15 text-accent border-accent/40",
-  violet: "bg-violet-400/15 text-violet-300 border-violet-400/40",
+  slate: "bg-slate/10 text-muted border-slate/40",
+  blue: "bg-info/10 text-info border-info/40",
+  green: "bg-good/10 text-good border-good/40",
+  red: "bg-bad/10 text-bad border-bad/40",
+  amber: "bg-accent/10 text-accent-ink border-accent/40",
+  violet: "bg-violet/10 text-violet border-violet/40",
 };
 
 export function statusClass(color: string | undefined): string {

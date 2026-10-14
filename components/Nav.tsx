@@ -65,7 +65,7 @@ export default function Nav({ isAdmin }: { isAdmin: boolean; wide?: boolean }) {
                   href={tab.href}
                   aria-current={active ? "page" : undefined}
                   className={`inline-flex h-10 items-center gap-2 rounded-xl px-3 text-sm font-medium transition-colors ${
-                    active ? "bg-accent/15 text-accent-ink" : "text-muted hover:bg-inset hover:text-ink"
+                    active ? "bg-accent/10 text-accent-ink" : "text-muted hover:bg-inset hover:text-ink"
                   }`}
                 >
                   <Icon size={16} strokeWidth={active ? 2.4 : 1.9} />

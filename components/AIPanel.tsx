@@ -145,7 +145,7 @@ export default function AIPanel({
   }
 
   return (
-    <div className="bg-surface border border-border rounded-2xl p-3">
+    <div>
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-1.5 text-xs uppercase tracking-wide text-accent-ink">
           <Sparkles size={12} /> AI helper
@@ -232,7 +232,7 @@ export default function AIPanel({
 
       {error && <div className="mt-2 text-sm text-bad">{error}</div>}
 
-      <div className="lg:max-h-[34vh] lg:overflow-y-auto pr-1">
+      <div className="max-h-[40vh] xl:max-h-[17vh] overflow-y-auto pr-1">
 
       {result && task === "coach" && (
         <div className="mt-4 space-y-4 text-sm">

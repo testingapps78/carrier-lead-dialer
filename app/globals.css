@@ -17,12 +17,13 @@
   --text: 17 24 39;
   --text-muted: 91 100 114; /* #5B6472: passes AA on both the page background and cards */
   --accent: 217 119 6; /* amber fills, borders, focus rings */
-  --accent-ink: 180 83 9; /* amber used as TEXT on light surfaces (#D97706 is only 3.2:1 as text) */
+  --accent-ink: 161 72 8; /* amber used as TEXT on light surfaces (#D97706 is only 3.2:1 as text) */
   --accent-text: 17 24 39; /* dark text on an amber fill */
-  --success: 21 128 61;
-  --warning: 180 83 9;
+  --success: 21 112 56;
+  --warning: 161 72 8;
   --danger: 185 28 28;
   --info: 29 78 216;
+  --violet: 109 40 217;
   --slate: 72 80 92;
   --scrim: 17 24 39;
   --tile-shadow: 0 1px 2px rgb(17 24 39 / 0.04), 0 1px 3px rgb(17 24 39 / 0.06);
@@ -41,8 +42,9 @@
   --accent-text: 15 17 12;
   --success: 63 178 127;
   --warning: 224 161 0;
-  --danger: 226 84 75;
+  --danger: 240 106 98;
   --info: 79 143 232;
+  --violet: 167 139 250;
   --slate: 86 98 119;
   --scrim: 0 0 0;
   --tile-shadow: none; /* dark tiles use the border only */
@@ -62,8 +64,9 @@
     --accent-text: 15 17 12;
     --success: 63 178 127;
     --warning: 224 161 0;
-    --danger: 226 84 75;
+    --danger: 240 106 98;
     --info: 79 143 232;
+    --violet: 167 139 250;
     --slate: 86 98 119;
     --scrim: 0 0 0;
     --tile-shadow: none;
@@ -99,6 +102,11 @@ html, body {
 
 input, select, textarea {
   background-color: transparent;
+}
+
+::placeholder {
+  color: rgb(var(--text-muted));
+  opacity: 1;
 }
 
 button {
