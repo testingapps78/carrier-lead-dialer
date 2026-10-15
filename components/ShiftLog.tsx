@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Play, Square, Phone, Tag, Trash2, Download } from "lucide-react";
+import Tile from "@/components/Tile";
 import { Shift, formatDuration, formatClock } from "@/lib/types";
 
 export default function ShiftLog() {
@@ -57,108 +58,120 @@ export default function ShiftLog() {
     .reduce((sum, s) => sum + s.carriers_viewed, 0) + (open?.carriers_viewed ?? 0);
 
   return (
-    <div className="max-w-3xl mx-auto px-4 pt-5 pb-28">
+    <div className="w-full px-6 pt-4 pb-24 md:pb-6">
       <h1 className="font-display text-2xl font-semibold tracking-tight mb-4">Dialing log</h1>
 
-      <div className="bg-surface elevated border border-border/60 rounded-2xl p-6 mb-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-sm text-muted mb-1">{open ? "Currently checked in" : "Not checked in"}</div>
-            <div className="font-display text-2xl font-semibold">
-              {open ? formatDuration(open.check_in, null) : "—"}
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-12 mb-4">
+        <Tile label="Shift" className="xl:col-span-6">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <div className="text-sm text-muted mb-1">{open ? "Currently checked in" : "Not checked in"}</div>
+              <div className="num font-display text-2xl font-semibold">{open ? formatDuration(open.check_in, null) : "—"}</div>
+              {open && <div className="text-xs text-muted mt-1 num">since {formatClock(open.check_in)}</div>}
             </div>
-            {open && <div className="text-xs text-muted mt-1">since {formatClock(open.check_in)}</div>}
-          </div>
-          <button
-            onClick={toggle}
-            disabled={busy}
-            className={`flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors disabled:opacity-50 ${
-              open ? "bg-bad/15 text-bad border border-bad/30" : "bg-good text-oncolor"
-            }`}
-          >
-            {open ? <Square size={14} /> : <Play size={14} />}
-            {open ? "Check out" : "Check in"}
-          </button>
-        </div>
-        <div className="grid grid-cols-2 gap-3 mt-5 pt-5 border-t border-border">
-          <div>
-            <div className="text-xs uppercase tracking-wide text-muted mb-1">Viewed today</div>
-            <div className="text-xl font-display font-semibold">{todayTotal}</div>
-          </div>
-          <div>
-            <div className="text-xs uppercase tracking-wide text-muted mb-1">This shift</div>
-            <div className="text-xl font-display font-semibold">{open?.carriers_logged ?? 0} logged</div>
-          </div>
-        </div>
-      </div>
-
-      <h2 className="text-sm uppercase tracking-wide text-muted mb-3">Past shifts</h2>
-
-      <div className="bg-surface border border-border rounded-xl p-4 mb-4 flex flex-wrap items-end gap-2">
-        <div>
-          <label className="block text-xs uppercase tracking-wide text-muted mb-1">From</label>
-          <input
-            type="date"
-            value={fromDate}
-            onChange={(e) => setFromDate(e.target.value)}
-            className="bg-surface2 border border-border rounded-lg px-2 py-2 text-sm text-ink focus:border-accent outline-none"
-          />
-        </div>
-        <div>
-          <label className="block text-xs uppercase tracking-wide text-muted mb-1">To</label>
-          <input
-            type="date"
-            value={toDate}
-            onChange={(e) => setToDate(e.target.value)}
-            className="bg-surface2 border border-border rounded-lg px-2 py-2 text-sm text-ink focus:border-accent outline-none"
-          />
-        </div>
-        <button
-          onClick={() => exportCsv("leads")}
-          className="flex items-center gap-1.5 text-xs bg-surface2 border border-border rounded-lg px-3 py-2 hover:border-accent transition-colors"
-        >
-          <Download size={12} /> Export my leads
-        </button>
-        <button
-          onClick={() => exportCsv("shifts")}
-          className="flex items-center gap-1.5 text-xs bg-surface2 border border-border rounded-lg px-3 py-2 hover:border-accent transition-colors"
-        >
-          <Download size={12} /> Export my shifts
-        </button>
-      </div>
-
-      {loading && <div className="text-muted text-center py-8">Loading…</div>}
-
-      {!loading && history.length === 0 && (
-        <div className="text-center text-muted py-12 border border-dashed border-border rounded-xl">
-          Your completed shifts will show up here.
-        </div>
-      )}
-
-      <div className="space-y-2">
-        {history.map((s) => (
-          <div key={s.id} className="bg-surface border border-border rounded-xl px-4 py-3 flex items-center gap-4">
-            <div className="flex-1">
-              <div className="text-sm font-medium">
-                {new Date(s.check_in).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
-              </div>
-              <div className="text-xs text-muted mt-0.5">
-                {formatClock(s.check_in)} – {s.check_out ? formatClock(s.check_out) : "—"} ·{" "}
-                {formatDuration(s.check_in, s.check_out)}
-                {s.start_number ? ` · ${(s.mode || "").toUpperCase()} ${s.start_number}–${s.end_number}` : ""}
-              </div>
-            </div>
-            <div className="flex items-center gap-1 text-xs text-muted">
-              <Phone size={12} /> {s.carriers_viewed}
-            </div>
-            <div className="flex items-center gap-1 text-xs text-muted">
-              <Tag size={12} /> {s.carriers_logged}
-            </div>
-            <button onClick={() => deleteShift(s.id)} className="text-muted hover:text-bad transition-colors">
-              <Trash2 size={14} />
+            <button
+              onClick={toggle}
+              disabled={busy}
+              className={`btn disabled:opacity-50 ${open ? "bg-bad/10 text-bad border border-bad/40" : "bg-good text-accent-text"}`}
+            >
+              {open ? <Square size={14} /> : <Play size={14} />}
+              {open ? "Check out" : "Check in"}
             </button>
           </div>
-        ))}
+        </Tile>
+        <Tile label="Viewed today" className="xl:col-span-3">
+          <div className="num font-display text-2xl font-semibold">{todayTotal}</div>
+        </Tile>
+        <Tile label="This shift" className="xl:col-span-3">
+          <div className="num font-display text-2xl font-semibold">{open?.carriers_logged ?? 0} logged</div>
+        </Tile>
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-12 items-start">
+        <Tile label="Export" className="xl:col-span-4">
+          <div className="flex flex-wrap items-end gap-3">
+            <div>
+              <label className="block text-xs font-medium text-muted mb-1">From</label>
+              <input
+                type="date"
+                value={fromDate}
+                onChange={(e) => setFromDate(e.target.value)}
+                className="bg-inset border border-border rounded-xl px-3 h-10 text-sm text-ink focus:border-accent outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-muted mb-1">To</label>
+              <input
+                type="date"
+                value={toDate}
+                onChange={(e) => setToDate(e.target.value)}
+                className="bg-inset border border-border rounded-xl px-3 h-10 text-sm text-ink focus:border-accent outline-none"
+              />
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2 mt-3">
+            <button onClick={() => exportCsv("leads")} className="btn btn-secondary">
+              <Download size={14} /> Export my leads
+            </button>
+            <button onClick={() => exportCsv("shifts")} className="btn btn-secondary">
+              <Download size={14} /> Export my shifts
+            </button>
+          </div>
+        </Tile>
+
+        <Tile label="Past shifts" className="xl:col-span-8 !p-0 overflow-hidden">
+          <div className="px-[18px] pt-[18px] pb-2 tile-label">Past shifts</div>
+
+          {loading && <div className="text-muted text-center py-8">Loading…</div>}
+
+          {!loading && history.length === 0 && (
+            <div className="text-center text-muted py-12 mx-[18px] mb-[18px] border border-dashed border-border rounded-tile">
+              Your completed shifts will show up here.
+            </div>
+          )}
+
+          {history.length > 0 && (
+            <div className="max-h-[60vh] overflow-y-auto">
+              <div className="sticky top-0 z-10 grid grid-cols-[1.2fr_2fr_1.4fr_auto_auto_40px] gap-3 px-[18px] py-2 bg-card border-y border-border text-xs font-semibold uppercase tracking-wide text-muted">
+                <span>Date</span>
+                <span>Time</span>
+                <span>Range</span>
+                <span>Viewed</span>
+                <span>Logged</span>
+                <span />
+              </div>
+              {history.map((s) => (
+                <div
+                  key={s.id}
+                  className="grid grid-cols-[1.2fr_2fr_1.4fr_auto_auto_40px] items-center gap-3 px-[18px] min-h-[44px] py-2 border-b border-border last:border-b-0 hover:bg-inset transition-colors"
+                >
+                  <div className="text-sm font-medium">
+                    {new Date(s.check_in).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
+                  </div>
+                  <div className="text-sm text-muted num">
+                    {formatClock(s.check_in)} – {s.check_out ? formatClock(s.check_out) : "—"} · {formatDuration(s.check_in, s.check_out)}
+                  </div>
+                  <div className="text-sm text-muted num">
+                    {s.start_number ? `${(s.mode || "").toUpperCase()} ${s.start_number}–${s.end_number}` : "—"}
+                  </div>
+                  <div className="flex items-center gap-1 text-sm text-muted num">
+                    <Phone size={13} /> {s.carriers_viewed}
+                  </div>
+                  <div className="flex items-center gap-1 text-sm text-muted num">
+                    <Tag size={13} /> {s.carriers_logged}
+                  </div>
+                  <button
+                    onClick={() => deleteShift(s.id)}
+                    aria-label="Delete shift"
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-muted hover:text-bad hover:bg-bad/10 transition-colors"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </Tile>
       </div>
     </div>
   );

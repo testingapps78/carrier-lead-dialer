@@ -1,5 +1,6 @@
 "use client";
 
+import Tile from "@/components/Tile";
 import { useEffect, useState } from "react";
 import { Megaphone, Send, Trash2 } from "lucide-react";
 import { TeamPost } from "@/lib/types";
@@ -65,93 +66,103 @@ export default function TeamFeed({ isAdmin, userId }: { isAdmin: boolean; userId
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4 pt-5 pb-28">
+    <div className="w-full px-6 pt-4 pb-24 md:pb-6">
       <h1 className="font-display text-2xl font-semibold tracking-tight mb-4">Team feed</h1>
 
-      {members.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-5">
-          {members.map((m) => (
-            <span
-              key={m.id}
-              className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border ${
-                m.online ? "bg-good/15 text-good border-good/40" : "bg-surface2 text-muted border-border"
-              }`}
-            >
-              <span className={`w-1.5 h-1.5 rounded-full ${m.online ? "bg-good" : "bg-muted"}`} />
-              {m.name}
-            </span>
-          ))}
-        </div>
-      )}
-
-      <form onSubmit={send} className="bg-surface border border-border rounded-xl p-4 mb-5">
-        <textarea
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-          placeholder={isAdmin ? "Share an update or announcement…" : "Got a sale? Let the team know…"}
-          rows={2}
-          className="w-full bg-surface2 border border-border rounded-lg px-3 py-2 text-sm text-ink focus:border-accent outline-none resize-none mb-3"
-        />
-        <div className="flex items-center justify-between">
-          {isAdmin ? (
-            <label className="flex items-center gap-1.5 text-xs text-muted">
-              <input type="checkbox" checked={asBroadcast} onChange={(e) => setAsBroadcast(e.target.checked)} />
-              Post as team announcement
-            </label>
-          ) : (
-            <span />
-          )}
-          <button
-            type="submit"
-            disabled={sending || !body.trim()}
-            className="flex items-center gap-1.5 bg-accent text-oncolor font-semibold rounded-lg px-3.5 py-2 text-sm disabled:opacity-50"
-          >
-            <Send size={13} /> Post
-          </button>
-        </div>
-      </form>
-
-      {loading && <div className="text-muted text-center py-12">Loading…</div>}
-
-      {!loading && posts.length === 0 && (
-        <div className="text-center text-muted py-16 border border-dashed border-border rounded-xl">
-          No posts yet — share a win or an update with the team.
-        </div>
-      )}
-
-      <div className="space-y-2">
-        {posts.map((post) => (
-          <div
-            key={post.id}
-            className={`rounded-xl px-4 py-3 border ${
-              post.is_broadcast ? "bg-accent/10 border-accent/30" : "bg-surface border-border"
-            }`}
-          >
-            <div className="flex items-start gap-2">
-              {post.is_broadcast && <Megaphone size={14} className="text-accent-ink mt-0.5 shrink-0" />}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 text-xs text-muted mb-1">
-                  <span className="font-medium text-ink">{post.profiles?.full_name || "Someone"}</span>
-                  <span>
-                    {new Date(post.created_at).toLocaleString(undefined, {
-                      month: "short",
-                      day: "numeric",
-                      hour: "numeric",
-                      minute: "2-digit",
-                    })}
-                  </span>
-                </div>
-                <p className="text-sm whitespace-pre-wrap">{post.body}</p>
-                {post.carriers?.legal_name && <p className="text-xs text-muted mt-1">Re: {post.carriers.legal_name}</p>}
-              </div>
-              {(post.author_id === userId || isAdmin) && (
-                <button onClick={() => remove(post.id)} className="text-muted hover:text-bad transition-colors shrink-0">
-                  <Trash2 size={13} />
+      <div className="grid gap-4 xl:grid-cols-12 items-start">
+        <div className="grid gap-4 xl:col-span-8">
+          <Tile label={isAdmin ? "Share an update or announcement" : "Share a win"}>
+            <form onSubmit={send}>
+              <textarea
+                value={body}
+                onChange={(e) => setBody(e.target.value)}
+                placeholder={isAdmin ? "Share an update or announcement…" : "Got a sale? Let the team know…"}
+                rows={2}
+                className="w-full bg-inset border border-border rounded-xl px-3 py-2 text-sm text-ink focus:border-accent outline-none resize-none mb-3"
+              />
+              <div className="flex items-center justify-between gap-3">
+                {isAdmin ? (
+                  <label className="flex items-center gap-2 text-sm text-muted min-h-[40px]">
+                    <input type="checkbox" checked={asBroadcast} onChange={(e) => setAsBroadcast(e.target.checked)} />
+                    Post as team announcement
+                  </label>
+                ) : (
+                  <span />
+                )}
+                <button type="submit" disabled={sending || !body.trim()} className="btn btn-primary disabled:opacity-50">
+                  <Send size={14} /> Post
                 </button>
-              )}
+              </div>
+            </form>
+          </Tile>
+
+          <Tile label="Feed">
+            {loading && <div className="text-muted text-center py-12">Loading…</div>}
+
+            {!loading && posts.length === 0 && (
+              <div className="text-center text-muted py-16 border border-dashed border-border rounded-tile">
+                No posts yet — share a win or an update with the team.
+              </div>
+            )}
+
+            <div className="space-y-3">
+              {posts.map((post) => (
+                <div
+                  key={post.id}
+                  className={`rounded-2xl px-4 py-3 border ${
+                    post.is_broadcast ? "bg-accent/10 border-accent/40" : "bg-inset border-border"
+                  }`}
+                >
+                  <div className="flex items-start gap-2">
+                    {post.is_broadcast && <Megaphone size={16} className="text-accent-ink mt-0.5 shrink-0" />}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 text-xs text-muted mb-1">
+                        <span className="font-semibold text-ink">{post.profiles?.full_name || "Someone"}</span>
+                        <span className="num">
+                          {new Date(post.created_at).toLocaleString(undefined, {
+                            month: "short",
+                            day: "numeric",
+                            hour: "numeric",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      </div>
+                      <p className="text-sm whitespace-pre-wrap">{post.body}</p>
+                      {post.carriers?.legal_name && <p className="text-xs text-muted mt-1">Re: {post.carriers.legal_name}</p>}
+                    </div>
+                    {(post.author_id === userId || isAdmin) && (
+                      <button
+                        onClick={() => remove(post.id)}
+                        aria-label="Delete post"
+                        className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-muted hover:text-bad hover:bg-bad/10 transition-colors shrink-0"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
-        ))}
+          </Tile>
+        </div>
+
+        <Tile label="Team" className="xl:col-span-4">
+          {members.length === 0 ? (
+            <div className="text-muted text-sm">No teammates to show yet.</div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              {members.map((m) => (
+                <div key={m.id} className="rounded-2xl border border-border bg-inset px-3 py-3 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${m.online ? "bg-good" : "bg-muted"}`} />
+                    <span className="text-sm font-semibold truncate">{m.name}</span>
+                  </div>
+                  <div className={`text-xs mt-1 ${m.online ? "text-good" : "text-muted"}`}>{m.online ? "Online" : "Offline"}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Tile>
       </div>
     </div>
   );

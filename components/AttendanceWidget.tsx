@@ -1,23 +1,24 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import Tile from "@/components/Tile";
 import { Play, Square, Coffee } from "lucide-react";
 import { formatClock } from "@/lib/types";
 import type { EventType, LiveStatus, ShiftSummary, ShiftType } from "@/lib/attendance";
 
 const ACTION_CONFIG: Record<EventType, { label: string; icon: any; className: string }> = {
-  CHECK_IN: { label: "Check in", icon: Play, className: "bg-good text-oncolor" },
-  BREAK_OUT: { label: "Start break", icon: Coffee, className: "bg-accent/15 text-accent-ink border border-accent/30" },
-  BREAK_IN: { label: "End break", icon: Play, className: "bg-good text-oncolor" },
-  CHECK_OUT: { label: "Check out", icon: Square, className: "bg-bad/15 text-bad border border-bad/30" },
+  CHECK_IN: { label: "Check in", icon: Play, className: "bg-good text-accent-text" },
+  BREAK_OUT: { label: "Start break", icon: Coffee, className: "bg-accent/10 text-accent-ink border border-accent/40" },
+  BREAK_IN: { label: "End break", icon: Play, className: "bg-good text-accent-text" },
+  CHECK_OUT: { label: "Check out", icon: Square, className: "bg-bad/10 text-bad border border-bad/40" },
 };
 
 const STATUS_META: Record<LiveStatus, { label: string; className: string }> = {
-  NOT_CHECKED_IN: { label: "NOT CHECKED IN", className: "bg-slate/20 text-muted border-slate/40" },
-  WORKING: { label: "WORKING", className: "bg-good/15 text-good border-good/40" },
-  ON_BREAK: { label: "ON BREAK", className: "bg-accent/15 text-accent-ink border-accent/40" },
-  CHECKED_OUT: { label: "CHECKED OUT", className: "bg-slate/20 text-muted border-slate/40" },
-  MISSING_CHECKOUT: { label: "NEEDS REVIEW", className: "bg-bad/15 text-bad border-bad/40" },
+  NOT_CHECKED_IN: { label: "NOT CHECKED IN", className: "bg-slate/10 text-muted border-slate/40" },
+  WORKING: { label: "WORKING", className: "bg-good/10 text-good border-good/40" },
+  ON_BREAK: { label: "ON BREAK", className: "bg-accent/10 text-accent-ink border-accent/40" },
+  CHECKED_OUT: { label: "CHECKED OUT", className: "bg-slate/10 text-muted border-slate/40" },
+  MISSING_CHECKOUT: { label: "NEEDS REVIEW", className: "bg-bad/10 text-bad border-bad/40" },
 };
 
 function formatMinutes(total: number | null | undefined): string {
@@ -98,94 +99,76 @@ export default function AttendanceWidget() {
   const meta = STATUS_META[status];
 
   return (
-    <div className="max-w-3xl mx-auto px-4 pt-5 pb-28">
+    <div className="w-full px-6 pt-4 pb-24 md:pb-6">
       <h1 className="font-display text-2xl font-semibold tracking-tight mb-4">Attendance</h1>
 
-      <div className="bg-surface elevated border border-border/60 rounded-2xl p-6 mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <span
-            className={`text-xs font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full border ${meta.className}`}
-          >
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-12 mb-4">
+        <Tile label="Status" className="xl:col-span-4">
+          <span className={`inline-block text-xs font-semibold uppercase tracking-wide px-3 py-1 rounded-full border ${meta.className}`}>
             {meta.label}
           </span>
           {shiftType && (
-            <span className="text-xs text-muted">
+            <div className="text-sm text-muted mt-3 num">
               {shiftType.name} · {formatShiftTime(shiftType.start_time)}–{formatShiftTime(shiftType.end_time)}
-            </span>
-          )}
-        </div>
-
-        <div className="flex items-end justify-between">
-          <div>
-            <div className="text-sm text-muted mb-1">Net working time</div>
-            <div className="font-display text-3xl font-semibold">
-              {loading ? "—" : formatMinutes(summary?.netMinutes)}
             </div>
-            {summary?.checkIn && (
-              <div className="text-xs text-muted mt-1">since {formatClock(summary.checkIn)}</div>
-            )}
-          </div>
-          <div className="text-right">
-            {!!summary?.lateMinutes && summary.lateMinutes > 0 && (
-              <div className="text-xs text-bad font-medium mb-1">{summary.lateMinutes}m late</div>
-            )}
+          )}
+          {summary?.checkIn && <div className="text-sm text-muted mt-1 num">since {formatClock(summary.checkIn)}</div>}
+        </Tile>
+
+        <Tile label="Net working time" className="xl:col-span-4">
+          <div className="num font-display text-2xl font-semibold">{loading ? "—" : formatMinutes(summary?.netMinutes)}</div>
+          <div className="mt-2 space-y-0.5">
+            {!!summary?.lateMinutes && summary.lateMinutes > 0 && <div className="text-sm text-bad font-medium num">{summary.lateMinutes}m late</div>}
             {!!summary?.overtimeMinutes && summary.overtimeMinutes > 0 && (
-              <div className="text-xs text-accent-ink font-medium">{formatMinutes(summary.overtimeMinutes)} OT</div>
+              <div className="text-sm text-accent-ink font-medium num">{formatMinutes(summary.overtimeMinutes)} OT</div>
+            )}
+            {!!summary?.totalBreakMinutes && summary.totalBreakMinutes > 0 && (
+              <div className="text-sm text-muted num">
+                {formatMinutes(summary.totalBreakMinutes)} break so far
+                {summary.hasIncompleteBreak ? " · currently on break" : ""}
+              </div>
             )}
           </div>
-        </div>
+        </Tile>
 
-        {!!summary?.totalBreakMinutes && summary.totalBreakMinutes > 0 && (
-          <div className="text-xs text-muted mt-2">
-            {formatMinutes(summary.totalBreakMinutes)} break so far
-            {summary.hasIncompleteBreak ? " · currently on break" : ""}
+        <Tile label="Actions" className="xl:col-span-4">
+          {error && <div className="text-sm text-bad mb-3">{error}</div>}
+          <div className="grid grid-cols-2 gap-3">
+            {allowedActions.map((action) => {
+              const cfg = ACTION_CONFIG[action];
+              const Icon = cfg.icon;
+              return (
+                <button
+                  key={action}
+                  onClick={() => doAction(action)}
+                  disabled={busy}
+                  className={`btn min-h-[48px] disabled:opacity-50 ${cfg.className}`}
+                >
+                  <Icon size={16} /> {cfg.label}
+                </button>
+              );
+            })}
+            {allowedActions.length === 0 && !loading && (
+              <div className="col-span-2 text-center text-muted text-sm py-2">
+                {summary?.checkOut ? `Checked out at ${formatClock(summary.checkOut)}` : "No actions available."}
+              </div>
+            )}
           </div>
-        )}
-
-        {error && <div className="text-xs text-bad mt-3">{error}</div>}
-
-        <div className="grid grid-cols-2 gap-3 mt-5 pt-5 border-t border-border">
-          {allowedActions.map((action) => {
-            const cfg = ACTION_CONFIG[action];
-            const Icon = cfg.icon;
-            return (
-              <button
-                key={action}
-                onClick={() => doAction(action)}
-                disabled={busy}
-                className={`flex items-center justify-center gap-2 text-sm font-semibold px-4 py-3 rounded-xl transition-colors disabled:opacity-50 ${cfg.className}`}
-              >
-                <Icon size={16} /> {cfg.label}
-              </button>
-            );
-          })}
-          {allowedActions.length === 0 && !loading && (
-            <div className="col-span-2 text-center text-muted text-sm py-2">
-              {summary?.checkOut ? `Checked out at ${formatClock(summary.checkOut)}` : "No actions available."}
-            </div>
-          )}
-        </div>
+        </Tile>
       </div>
 
       {!!summary?.breakSessions?.length && (
-        <>
-          <h2 className="text-sm uppercase tracking-wide text-muted mb-3">Break sessions</h2>
-          <div className="space-y-2 mb-6">
-            {summary.breakSessions.map((b, i) => (
-              <div
-                key={i}
-                className="bg-surface border border-border rounded-xl px-4 py-3 flex items-center justify-between text-sm"
-              >
-                <span>
-                  {formatClock(b.start)} – {b.end ? formatClock(b.end) : "in progress"}
-                </span>
-                <span className="text-muted text-xs">
-                  {b.minutes != null ? formatMinutes(b.minutes) : "incomplete"}
-                </span>
-              </div>
-            ))}
-          </div>
-        </>
+        <Tile label="Break sessions" className="!p-0 overflow-hidden">
+          <div className="px-[18px] pt-[18px] pb-2 tile-label">Break sessions</div>
+          {summary.breakSessions.map((b, i) => (
+            <div key={i} className="flex items-center justify-between gap-4 px-[18px] min-h-[44px] py-2 border-t border-border text-sm hover:bg-inset transition-colors">
+              <span className="num">
+                {formatClock(b.start)} – {b.end ? formatClock(b.end) : "in progress"}
+              </span>
+              <span className="text-muted text-sm num">{b.minutes != null ? formatMinutes(b.minutes) : "incomplete"}</span>
+            </div>
+          ))}
+        </Tile>
       )}
     </div>
   );
