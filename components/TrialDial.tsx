@@ -91,7 +91,7 @@ export default function TrialDial() {
   if (limitReached) {
     return (
       <div className="max-w-lg mx-auto px-4 py-16 text-center">
-        <div className="mile-marker inline-block border-2 border-accent text-accent-ink px-3 py-1 text-sm font-semibold tracking-widest rounded-lg glow-accent mb-6">
+        <div className="mile-marker inline-block border-2 border-accent text-accent-ink px-3 py-1 text-sm font-semibold tracking-widest rounded-lg mb-6">
           TRIAL COMPLETE
         </div>
         <h2 className="font-display text-2xl font-semibold mb-3">You've used all 10 free lookups</h2>
@@ -110,9 +110,9 @@ export default function TrialDial() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4 pt-8 pb-16">
-      <div className="text-center mb-6">
-        <div className="mile-marker inline-block border-2 border-accent text-accent-ink px-3 py-1 text-sm font-semibold tracking-widest rounded-lg mb-4">
+    <div className="max-w-5xl mx-auto px-6 pt-8 pb-16">
+      <div className="tile text-center mb-4 !py-8">
+        <div className="mile-marker inline-block border-2 border-accent text-accent-ink px-3 py-1 text-sm font-semibold tracking-widest rounded-xl mb-4">
           FREE TRIAL
         </div>
         <h1 className="font-display text-3xl font-semibold tracking-tight">Carrier Dialer</h1>
@@ -138,34 +138,34 @@ export default function TrialDial() {
         )}
       </div>
 
-      <form onSubmit={handleStart} className="bg-surface border border-border rounded-xl p-4 mb-5 flex flex-wrap items-end gap-3">
-        <div className="flex rounded-lg border border-border overflow-hidden text-sm">
-          <button type="button" onClick={() => setMode("mc")} className={`px-3 py-2.5 font-medium ${mode === "mc" ? "bg-accent text-oncolor" : "text-muted"}`}>
+      <form onSubmit={handleStart} className="tile mb-4 flex flex-wrap items-end gap-3">
+        <div className="flex rounded-xl border border-border overflow-hidden text-sm">
+          <button type="button" onClick={() => setMode("mc")} className={`px-4 min-h-[40px] font-semibold ${mode === "mc" ? "bg-accent text-accent-text" : "text-muted"}`}>
             Scan by MC
           </button>
-          <button type="button" onClick={() => setMode("dot")} className={`px-3 py-2.5 font-medium ${mode === "dot" ? "bg-accent text-oncolor" : "text-muted"}`}>
+          <button type="button" onClick={() => setMode("dot")} className={`px-4 min-h-[40px] font-semibold ${mode === "dot" ? "bg-accent text-accent-text" : "text-muted"}`}>
             Scan by DOT
           </button>
         </div>
         <div>
-          <label className="block text-xs uppercase tracking-wide text-muted mb-1">Starting {mode === "mc" ? "MC" : "DOT"} #</label>
+          <label className="block text-xs font-medium text-muted mb-1">Starting {mode === "mc" ? "MC" : "DOT"} #</label>
           <input
             value={startInput}
             onChange={(e) => setStartInput(e.target.value)}
             placeholder={mode === "mc" ? "e.g. 900000" : "e.g. 2500000"}
-            className="w-36 bg-surface2 border border-border rounded-lg px-3 py-2.5 mile-marker text-ink focus:border-accent outline-none"
+            className="w-36 bg-inset border border-border rounded-xl px-3 py-2.5 min-h-[40px] mile-marker text-ink focus:border-accent outline-none"
             inputMode="numeric"
           />
         </div>
         <div>
-          <label className="block text-xs uppercase tracking-wide text-muted mb-1">State</label>
-          <select value={state} onChange={(e) => setState(e.target.value)} className="bg-surface2 border border-border rounded-lg px-3 py-2.5 text-ink focus:border-accent outline-none">
+          <label className="block text-xs font-medium text-muted mb-1">State</label>
+          <select value={state} onChange={(e) => setState(e.target.value)} className="bg-inset border border-border rounded-xl px-3 py-2.5 min-h-[40px] text-ink focus:border-accent outline-none">
             <option value="">Any</option>
             {US_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
         </div>
         <div>
-          <label className="block text-xs uppercase tracking-wide text-muted mb-1">Power units</label>
+          <label className="block text-xs font-medium text-muted mb-1">Power units</label>
           <div className="flex items-center gap-1.5">
             <input value={minPU} onChange={(e) => setMinPU(e.target.value)} className="w-14 bg-surface2 border border-border rounded-lg px-2 py-2.5 text-ink focus:border-accent outline-none" inputMode="numeric" />
             <span className="text-muted">–</span>
@@ -176,7 +176,7 @@ export default function TrialDial() {
           <input type="checkbox" checked={docketOnly} onChange={(e) => setDocketOnly(e.target.checked)} />
           Has MC authority
         </label>
-        <button type="submit" className="ml-auto bg-accent text-oncolor font-semibold rounded-lg px-4 py-2.5 hover:bg-accent/90 active:scale-[0.98] transition-all">
+        <button type="submit" className="btn btn-primary ml-auto">
           {started ? "Restart" : "Try it"}
         </button>
       </form>
@@ -202,7 +202,7 @@ export default function TrialDial() {
       )}
 
       {current && !exhausted && (
-        <div key={current.dot_number} className="bg-surface elevated border border-border/60 rounded-2xl p-6 animate-fade-in">
+        <div key={current.dot_number} className="tile !p-6 animate-fade-in">
           <div className="flex flex-wrap items-center gap-2 mb-4">
             {current.docket_prefix && current.docket_number && (
               <span className="mile-marker text-sm border border-accent text-accent-ink px-2.5 py-1 rounded-lg">
@@ -219,7 +219,7 @@ export default function TrialDial() {
             <div className="flex gap-3">
               <Phone size={16} className="text-muted mt-0.5 shrink-0" />
               <div>
-                <div className="text-xs uppercase tracking-wide text-muted mb-1">Phone</div>
+                <div className="text-xs font-medium text-muted mb-1">Phone</div>
                 {phone ? (
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="mile-marker text-lg">{phone}</span>
@@ -232,14 +232,14 @@ export default function TrialDial() {
             <div className="flex gap-3">
               <MapPin size={16} className="text-muted mt-0.5 shrink-0" />
               <div>
-                <div className="text-xs uppercase tracking-wide text-muted mb-1">Location</div>
+                <div className="text-xs font-medium text-muted mb-1">Location</div>
                 <div className="text-sm">{[current.phy_city, current.phy_state, current.phy_zip].filter(Boolean).join(", ") || "—"}</div>
               </div>
             </div>
             <div className="flex gap-3">
               <Truck size={16} className="text-muted mt-0.5 shrink-0" />
               <div>
-                <div className="text-xs uppercase tracking-wide text-muted mb-1">Fleet</div>
+                <div className="text-xs font-medium text-muted mb-1">Fleet</div>
                 <div className="text-sm">{current.power_units ?? "?"} power units · {current.total_drivers ?? "?"} drivers</div>
               </div>
             </div>
@@ -247,7 +247,7 @@ export default function TrialDial() {
 
           <EnrichmentPanel dotNumber={current.dot_number} endpoint={`/api/trial/enrich/${current.dot_number}`} />
 
-          <button onClick={handleNext} disabled={loading} className="w-full mt-6 bg-accent glow-accent text-oncolor font-semibold rounded-xl py-3.5 hover:bg-accent/90 disabled:opacity-50 transition-all">
+          <button onClick={handleNext} disabled={loading} className="btn btn-primary w-full mt-6 min-h-[48px] text-base disabled:opacity-50">
             {loading ? "Loading…" : "Next active carrier →"}
           </button>
         </div>

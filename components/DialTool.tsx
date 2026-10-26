@@ -372,7 +372,7 @@ export default function DialTool({ userId }: { userId: string }) {
   const detailsError = current && detailsState.dot === current.dot_number ? detailsState.error : null;
   const pill = (active: boolean) =>
     `inline-flex items-center gap-1.5 text-sm px-3 min-h-[32px] rounded-full border transition-colors ${
-      active ? "bg-accent/15 text-accent-ink border-accent" : "text-muted border-border hover:text-ink hover:bg-inset"
+      active ? "bg-accent/10 text-accent-ink border-accent" : "text-muted border-border hover:text-ink hover:bg-inset"
     }`;
 
   return (
@@ -521,7 +521,7 @@ export default function DialTool({ userId }: { userId: string }) {
                   onClick={toggleSaved}
                   disabled={savingLead}
                   className={`ml-auto inline-flex items-center gap-1.5 text-sm font-medium px-3 min-h-[40px] rounded-xl border transition-colors disabled:opacity-60 ${
-                    lead?.saved ? "bg-accent/15 text-accent-ink border-accent" : "text-ink border-border hover:bg-inset"
+                    lead?.saved ? "bg-accent/10 text-accent-ink border-accent" : "text-ink border-border hover:bg-inset"
                   }`}
                   title="Save this MC to export later"
                 >

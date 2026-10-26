@@ -16,7 +16,7 @@ export default async function DialPage() {
 
   return (
     <>
-      <Nav isAdmin={isAdmin} wide />
+      <Nav isAdmin={isAdmin} />
       <DialTool userId={user?.id ?? ""} />
     </>
   );

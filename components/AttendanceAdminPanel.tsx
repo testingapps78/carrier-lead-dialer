@@ -1,5 +1,6 @@
 "use client";
 
+import Tile from "@/components/Tile";
 import { useCallback, useEffect, useState } from "react";
 import { Play, Coffee, Square, AlertCircle, Plus, Check } from "lucide-react";
 
@@ -19,11 +20,11 @@ function formatClock(iso: string | null): string {
 }
 
 const STATUS_META: Record<string, { label: string; className: string }> = {
-  NOT_CHECKED_IN: { label: "Not checked in", className: "bg-slate/20 text-muted border-slate/40" },
-  WORKING: { label: "Working", className: "bg-good/15 text-good border-good/40" },
-  ON_BREAK: { label: "On break", className: "bg-accent/15 text-accent-ink border-accent/40" },
-  CHECKED_OUT: { label: "Checked out", className: "bg-slate/20 text-muted border-slate/40" },
-  MISSING_CHECKOUT: { label: "Needs review", className: "bg-bad/15 text-bad border-bad/40" },
+  NOT_CHECKED_IN: { label: "Not checked in", className: "bg-slate/10 text-muted border-slate/40" },
+  WORKING: { label: "Working", className: "bg-good/10 text-good border-good/40" },
+  ON_BREAK: { label: "On break", className: "bg-accent/10 text-accent-ink border-accent/40" },
+  CHECKED_OUT: { label: "Checked out", className: "bg-slate/10 text-muted border-slate/40" },
+  MISSING_CHECKOUT: { label: "Needs review", className: "bg-bad/10 text-bad border-bad/40" },
 };
 
 // ---------- Live tab ----------
@@ -85,7 +86,7 @@ function LiveTab() {
     <div>
       <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-5">
         {CARDS.map((c) => (
-          <div key={c.key} className="bg-surface border border-border rounded-xl px-3 py-2.5">
+          <div key={c.key} className="bg-inset border border-border rounded-2xl px-3 py-2.5">
             <div className="text-lg font-display font-semibold">{counts?.[c.key] ?? 0}</div>
             <div className="text-xs text-muted">{c.label}</div>
           </div>
@@ -96,7 +97,7 @@ function LiveTab() {
         {rows.map((r) => {
           const meta = STATUS_META[r.status] ?? STATUS_META.NOT_CHECKED_IN;
           return (
-            <div key={r.userId} className="bg-surface border border-border rounded-xl px-4 py-3">
+            <div key={r.userId} className="bg-inset border border-border rounded-2xl px-4 py-3">
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <div className="text-sm font-medium text-ink">{r.name}</div>
@@ -186,17 +187,17 @@ function CorrectionModal({ row, onClose, onDone }: { row: LiveRow; onClose: () =
   return (
     <div className="fixed inset-0 bg-scrim/50 flex items-end sm:items-center justify-center z-50 p-4" onClick={onClose}>
       <div
-        className="bg-surface elevated border border-border rounded-2xl p-5 w-full max-w-md"
+        className="tile w-full max-w-md"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="font-display text-lg font-semibold mb-1">Fix attendance — {row.name}</h3>
+        <h3 className="tile-label mb-2">Fix attendance — {row.name}</h3>
         <p className="text-xs text-muted mb-4">Shift date {row.shiftDate}. Every correction is logged with your name and reason.</p>
 
         <label className="text-xs text-muted mb-1 block">Action</label>
         <select
           value={actionType}
           onChange={(e) => setActionType(e.target.value)}
-          className="w-full bg-surface2 border border-border rounded-lg px-3 py-2 text-sm mb-3 outline-none focus:border-accent"
+          className="w-full bg-inset border border-border rounded-xl px-3 py-2 min-h-[40px] text-sm mb-3 outline-none focus:border-accent"
         >
           {CORRECTION_ACTIONS.map((a) => (
             <option key={a.value} value={a.value}>
@@ -212,7 +213,7 @@ function CorrectionModal({ row, onClose, onDone }: { row: LiveRow; onClose: () =
               type="datetime-local"
               value={time}
               onChange={(e) => setTime(e.target.value)}
-              className="w-full bg-surface2 border border-border rounded-lg px-3 py-2 text-sm mb-3 outline-none focus:border-accent"
+              className="w-full bg-inset border border-border rounded-xl px-3 py-2 min-h-[40px] text-sm mb-3 outline-none focus:border-accent"
             />
           </>
         )}
@@ -223,7 +224,7 @@ function CorrectionModal({ row, onClose, onDone }: { row: LiveRow; onClose: () =
           onChange={(e) => setReason(e.target.value)}
           rows={2}
           placeholder="e.g. Employee forgot to check out."
-          className="w-full bg-surface2 border border-border rounded-lg px-3 py-2 text-sm mb-3 outline-none focus:border-accent resize-none"
+          className="w-full bg-inset border border-border rounded-xl px-3 py-2 min-h-[40px] text-sm mb-3 outline-none focus:border-accent resize-none"
         />
 
         {error && (
@@ -308,13 +309,13 @@ function ShiftsTab() {
     <div>
       <div className="space-y-2 mb-4">
         {shiftTypes.map((s) => (
-          <div key={s.id} className="bg-surface border border-border rounded-xl px-4 py-3">
+          <div key={s.id} className="bg-inset border border-border rounded-2xl px-4 py-3">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
                 <div className="text-sm font-medium text-ink flex items-center gap-2">
                   {s.name}
                   {s.is_default && (
-                    <span className="text-xs uppercase tracking-wide bg-accent/15 text-accent-ink border border-accent/30 rounded-full px-1.5 py-0.5">
+                    <span className="text-xs uppercase tracking-wide bg-accent/10 text-accent-ink border border-accent/30 rounded-full px-1.5 py-0.5">
                       Default
                     </span>
                   )}
@@ -399,7 +400,7 @@ function AddShiftForm({ onDone, onCancel }: { onDone: () => void; onCancel: () =
   }
 
   return (
-    <div className="bg-surface border border-border rounded-xl p-4">
+    <div className="bg-inset border border-border rounded-2xl p-4">
       <div className="grid grid-cols-2 gap-3 mb-3">
         <div className="col-span-2">
           <label className="text-xs text-muted mb-1 block">Name</label>
@@ -407,7 +408,7 @@ function AddShiftForm({ onDone, onCancel }: { onDone: () => void; onCancel: () =
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Night Shift"
-            className="w-full bg-surface2 border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-accent"
+            className="w-full bg-inset border border-border rounded-xl px-3 py-2 min-h-[40px] text-sm outline-none focus:border-accent"
           />
         </div>
         <div>
@@ -416,7 +417,7 @@ function AddShiftForm({ onDone, onCancel }: { onDone: () => void; onCancel: () =
             type="time"
             value={startTime}
             onChange={(e) => setStartTime(e.target.value)}
-            className="w-full bg-surface2 border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-accent"
+            className="w-full bg-inset border border-border rounded-xl px-3 py-2 min-h-[40px] text-sm outline-none focus:border-accent"
           />
         </div>
         <div>
@@ -425,7 +426,7 @@ function AddShiftForm({ onDone, onCancel }: { onDone: () => void; onCancel: () =
             type="time"
             value={endTime}
             onChange={(e) => setEndTime(e.target.value)}
-            className="w-full bg-surface2 border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-accent"
+            className="w-full bg-inset border border-border rounded-xl px-3 py-2 min-h-[40px] text-sm outline-none focus:border-accent"
           />
         </div>
         <div>
@@ -434,7 +435,7 @@ function AddShiftForm({ onDone, onCancel }: { onDone: () => void; onCancel: () =
             type="number"
             value={graceMinutes}
             onChange={(e) => setGraceMinutes(Number(e.target.value))}
-            className="w-full bg-surface2 border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-accent"
+            className="w-full bg-inset border border-border rounded-xl px-3 py-2 min-h-[40px] text-sm outline-none focus:border-accent"
           />
         </div>
         <div>
@@ -443,7 +444,7 @@ function AddShiftForm({ onDone, onCancel }: { onDone: () => void; onCancel: () =
             type="number"
             value={expectedBreakMinutes}
             onChange={(e) => setExpectedBreakMinutes(Number(e.target.value))}
-            className="w-full bg-surface2 border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-accent"
+            className="w-full bg-inset border border-border rounded-xl px-3 py-2 min-h-[40px] text-sm outline-none focus:border-accent"
           />
         </div>
         <div className="col-span-2">
@@ -452,7 +453,7 @@ function AddShiftForm({ onDone, onCancel }: { onDone: () => void; onCancel: () =
             type="number"
             value={overtimeThresholdMinutes}
             onChange={(e) => setOvertimeThresholdMinutes(Number(e.target.value))}
-            className="w-full bg-surface2 border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-accent"
+            className="w-full bg-inset border border-border rounded-xl px-3 py-2 min-h-[40px] text-sm outline-none focus:border-accent"
           />
         </div>
       </div>
@@ -502,7 +503,7 @@ function HistoryTab() {
   return (
     <div className="space-y-2">
       {corrections.map((c) => (
-        <div key={c.id} className="bg-surface border border-border rounded-xl px-4 py-3">
+        <div key={c.id} className="bg-inset border border-border rounded-2xl px-4 py-3">
           <div className="flex items-center justify-between gap-2 text-sm">
             <span className="font-medium text-ink">{c.employee_name}</span>
             <span className="text-xs text-muted">{new Date(c.created_at).toLocaleString()}</span>
@@ -523,10 +524,10 @@ export default function AttendanceAdminPanel() {
   const [tab, setTab] = useState<"live" | "shifts" | "history">("live");
 
   return (
-    <div className="max-w-3xl mx-auto px-4 pt-5 pb-28">
+    <div className="w-full px-6 pt-4 pb-24 md:pb-6">
       <h1 className="font-display text-2xl font-semibold tracking-tight mb-4">Attendance — Admin</h1>
 
-      <div className="flex gap-1 mb-5 bg-surface2 rounded-lg p-1 w-fit">
+      <div className="flex gap-1 mb-4 bg-inset border border-border rounded-xl p-1 w-fit">
         {[
           { key: "live", label: "Live" },
           { key: "shifts", label: "Shifts" },
@@ -535,8 +536,8 @@ export default function AttendanceAdminPanel() {
           <button
             key={t.key}
             onClick={() => setTab(t.key as typeof tab)}
-            className={`text-sm font-medium px-3.5 py-1.5 rounded-md transition-colors ${
-              tab === t.key ? "bg-accent text-oncolor" : "text-muted hover:text-ink"
+            className={`text-sm font-medium px-4 min-h-[40px] rounded-lg transition-colors ${
+              tab === t.key ? "bg-accent text-accent-text" : "text-muted hover:text-ink"
             }`}
           >
             {t.label}
@@ -544,9 +545,11 @@ export default function AttendanceAdminPanel() {
         ))}
       </div>
 
-      {tab === "live" && <LiveTab />}
-      {tab === "shifts" && <ShiftsTab />}
-      {tab === "history" && <HistoryTab />}
+      <Tile>
+        {tab === "live" && <LiveTab />}
+        {tab === "shifts" && <ShiftsTab />}
+        {tab === "history" && <HistoryTab />}
+      </Tile>
     </div>
   );
 }

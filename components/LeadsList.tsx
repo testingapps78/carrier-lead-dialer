@@ -209,7 +209,7 @@ export default function LeadsList({ userId }: { userId: string }) {
   if (dncOnly) exportParams.set("dnc", "1");
 
   const chip = (active: boolean) =>
-    `flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg border transition-colors ${active ? "bg-accent/20 text-accent-ink border-accent" : "text-muted border-border"}`;
+    `flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg border transition-colors ${active ? "bg-accent/10 text-accent-ink border-accent" : "text-muted border-border"}`;
 
   const due = counts ? counts.overdue + counts.today : null;
   const selectedLead = rows.find((r) => r.dot_number === expanded) ?? null;

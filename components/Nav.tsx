@@ -9,8 +9,7 @@ import { createClient } from "@/lib/supabase/client";
 import ThemeToggle from "@/components/ThemeToggle";
 import Logo from "@/components/Logo";
 
-// `wide` is accepted for compatibility with existing pages; every page is now full width.
-export default function Nav({ isAdmin }: { isAdmin: boolean; wide?: boolean }) {
+export default function Nav({ isAdmin }: { isAdmin: boolean }) {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();

@@ -185,14 +185,6 @@ button:active {
   }
 }
 
-/* Older class names kept so existing screens stay valid while they are migrated: no glow, shadow only in light */
-.elevated {
-  box-shadow: var(--tile-shadow);
-}
-.glow-accent {
-  box-shadow: none;
-}
-
 /* Logos: show the variant that has contrast on the active theme (CSS only, so no flash and no script) */
 .logo-on-light { display: none; }
 :root:not([data-theme="dark"]) .logo-on-light { display: block; }

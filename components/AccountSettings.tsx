@@ -75,11 +75,12 @@ export default function AccountSettings() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 pt-5 pb-28">
+    <div className="w-full px-6 pt-4 pb-24 md:pb-6">
       <h1 className="font-display text-2xl font-semibold tracking-tight mb-4">Account</h1>
 
-      <div className="bg-surface border border-border rounded-xl p-5 mb-6">
-        <h2 className="font-display text-lg font-semibold mb-1 flex items-center gap-2">
+      <div className="grid gap-4 xl:grid-cols-2 items-start">
+      <div className="tile">
+        <h2 className="tile-label mb-2 flex items-center gap-2">
           <KeyRound size={16} /> Change password
         </h2>
         <p className="text-muted text-sm mb-4">You'll stay signed in on this device after changing it.</p>
@@ -89,38 +90,38 @@ export default function AccountSettings() {
 
         <form onSubmit={handlePasswordChange} className="space-y-3">
           <div>
-            <label className="block text-xs uppercase tracking-wide text-muted mb-1">Current password</label>
+            <label className="block text-xs font-medium text-muted mb-1">Current password</label>
             <input
               type="password"
               required
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
-              className="w-full bg-surface2 border border-border rounded-lg px-3 py-2 text-ink focus:border-accent outline-none"
+              className="w-full bg-inset border border-border rounded-xl px-3 py-2 min-h-[40px] text-ink focus:border-accent outline-none"
             />
           </div>
           <div>
-            <label className="block text-xs uppercase tracking-wide text-muted mb-1">New password</label>
+            <label className="block text-xs font-medium text-muted mb-1">New password</label>
             <input
               type="password"
               required
               minLength={8}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full bg-surface2 border border-border rounded-lg px-3 py-2 text-ink focus:border-accent outline-none"
+              className="w-full bg-inset border border-border rounded-xl px-3 py-2 min-h-[40px] text-ink focus:border-accent outline-none"
             />
           </div>
           <button
             type="submit"
             disabled={submitting}
-            className="bg-accent text-oncolor font-semibold rounded-lg px-4 py-2 text-sm disabled:opacity-50"
+            className="btn btn-primary disabled:opacity-50"
           >
             {submitting ? "Updating…" : "Update password"}
           </button>
         </form>
       </div>
 
-      <div className="bg-surface border border-border rounded-xl p-5">
-        <h2 className="font-display text-lg font-semibold mb-1 flex items-center gap-2">
+      <div className="tile">
+        <h2 className="tile-label mb-2 flex items-center gap-2">
           <Monitor size={16} /> Your devices
         </h2>
         <p className="text-muted text-sm mb-4">
@@ -134,7 +135,7 @@ export default function AccountSettings() {
         ) : (
           <div className="space-y-2">
             {sessions.map((s) => (
-              <div key={s.id} className="flex items-center gap-3 bg-surface2 rounded-lg px-3 py-2.5">
+              <div key={s.id} className="flex items-center gap-3 bg-inset rounded-xl px-3 py-2.5">
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium">
                     {describeUserAgent(s.user_agent)}
@@ -155,6 +156,7 @@ export default function AccountSettings() {
             ))}
           </div>
         )}
+      </div>
       </div>
     </div>
   );
